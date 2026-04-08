@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
-
-export type ThemeMode = "light" | "dark";
+import { resolveThemeMode } from "@/lib/preferences";
+import { useAppStore } from "@/lib/state/store";
+import type { ThemeMode } from "@/types";
 
 function getMediaQueryList(): MediaQueryList | null {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -27,7 +28,9 @@ function getServerSnapshot(): ThemeMode {
 }
 
 export function useSystemTheme(): ThemeMode {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const themePreference = useAppStore((state) => state.preferences.themePreference);
+  const systemTheme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const theme = resolveThemeMode(themePreference, systemTheme);
 
   useEffect(() => {
     const root = document.documentElement;

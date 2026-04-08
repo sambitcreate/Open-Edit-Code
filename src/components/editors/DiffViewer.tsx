@@ -8,7 +8,7 @@ const MonacoDiffEditor = lazy(() =>
 
 export function DiffViewer() {
   const theme = useSystemTheme();
-  const { originalContent, rawContent, currentFile } = useAppStore();
+  const { originalContent, rawContent, currentFile, preferences } = useAppStore();
 
   const editorLanguage = currentFile?.format === "jsonc"
     ? "json"
@@ -47,11 +47,12 @@ export function DiffViewer() {
             options={{
               readOnly: true,
               minimap: { enabled: false },
-              fontSize: 13,
-              lineNumbers: "on",
+              fontSize: preferences.editor.fontSize,
+              lineNumbers: preferences.editor.showLineNumbers ? "on" : "off",
               scrollBeyondLastLine: false,
               automaticLayout: true,
               renderSideBySide: true,
+              wordWrap: preferences.editor.wordWrap ? "on" : "off",
             }}
           />
         </div>

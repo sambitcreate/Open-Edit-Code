@@ -1,6 +1,8 @@
 export type FileFormat = "json" | "jsonc" | "yaml" | "toml";
 
 export type ConfigRootKind = "object" | "array";
+export type ThemeMode = "light" | "dark";
+export type ThemePreference = "system" | ThemeMode;
 
 export interface OpenFile {
   path: string;
@@ -28,6 +30,36 @@ export interface ValidationError {
 }
 
 export type EditorMode = "form" | "structure" | "raw" | "diff";
+export type DefaultOpenMode = "auto" | EditorMode;
+export type BackupRetentionMode = "count" | "age";
+
+export interface EditorPreferences {
+  fontSize: number;
+  tabSize: number;
+  wordWrap: boolean;
+  showLineNumbers: boolean;
+}
+
+export interface BackupRetentionPreferences {
+  mode: BackupRetentionMode;
+  value: number;
+}
+
+export interface JsonFormatPreferences {
+  indentSize: 2 | 4;
+  sortKeys: boolean;
+}
+
+export interface AppPreferences {
+  themePreference: ThemePreference;
+  editor: EditorPreferences;
+  backupRetention: BackupRetentionPreferences;
+  defaultOpenMode: DefaultOpenMode;
+  formatDefaults: {
+    json: JsonFormatPreferences;
+    jsonc: JsonFormatPreferences;
+  };
+}
 
 export interface AppState {
   currentFile: OpenFile | null;
@@ -43,4 +75,5 @@ export interface AppState {
   isLoadingBackups: boolean;
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
+  preferences: AppPreferences;
 }

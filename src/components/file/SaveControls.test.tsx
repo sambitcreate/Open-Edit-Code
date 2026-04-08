@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { SaveControls } from "./SaveControls";
 
@@ -37,6 +38,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    preferences: createDefaultPreferences(),
     ...overrides,
   });
 }
@@ -94,6 +96,23 @@ describe("SaveControls", () => {
       configRootKind: "object",
       dirty: true,
       editorMode: "form",
+      preferences: {
+        ...createDefaultPreferences(),
+        backupRetention: {
+          mode: "count",
+          value: 12,
+        },
+        formatDefaults: {
+          json: {
+            indentSize: 4,
+            sortKeys: true,
+          },
+          jsonc: {
+            indentSize: 2,
+            sortKeys: false,
+          },
+        },
+      },
     });
 
     render(<SaveControls />);
@@ -102,13 +121,17 @@ describe("SaveControls", () => {
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith("save_file", {
         path: "/tmp/config.json",
-        content: ["{", '  "name": "after"', "}"].join("\n"),
+        content: ["{", '    "name": "after"', "}"].join("\n"),
+        backupRetention: {
+          mode: "count",
+          value: 12,
+        },
       });
     });
 
     expect(useAppStore.getState()).toMatchObject({
-      originalContent: ["{", '  "name": "after"', "}"].join("\n"),
-      rawContent: ["{", '  "name": "after"', "}"].join("\n"),
+      originalContent: ["{", '    "name": "after"', "}"].join("\n"),
+      rawContent: ["{", '    "name": "after"', "}"].join("\n"),
       configData: { name: "after" },
       dirty: false,
       validationErrors: [],
@@ -140,6 +163,19 @@ describe("SaveControls", () => {
       configRootKind: "array",
       dirty: true,
       editorMode: "form",
+      preferences: {
+        ...createDefaultPreferences(),
+        formatDefaults: {
+          json: {
+            indentSize: 4,
+            sortKeys: false,
+          },
+          jsonc: {
+            indentSize: 2,
+            sortKeys: false,
+          },
+        },
+      },
     });
 
     render(<SaveControls />);
@@ -148,13 +184,17 @@ describe("SaveControls", () => {
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith("save_file", {
         path: "/tmp/config.json",
-        content: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+        content: ["[", "    1,", "    2,", "    3", "]"].join("\n"),
+        backupRetention: {
+          mode: "count",
+          value: 25,
+        },
       });
     });
 
     expect(useAppStore.getState()).toMatchObject({
-      originalContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
-      rawContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+      originalContent: ["[", "    1,", "    2,", "    3", "]"].join("\n"),
+      rawContent: ["[", "    1,", "    2,", "    3", "]"].join("\n"),
       configRootKind: "array",
       dirty: false,
     });

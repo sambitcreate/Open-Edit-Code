@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "./store";
 
 function resetStore() {
@@ -17,6 +18,7 @@ function resetStore() {
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    preferences: createDefaultPreferences(),
   });
 }
 
@@ -84,6 +86,7 @@ describe("useAppStore", () => {
       recentFiles: ["/tmp/config.json"],
       backups: [{ path: "/tmp/backup", timestamp: "20260101_000000", original_path: "/tmp/config.json" }],
       lastSaveResult: { success: true, backup_path: "/tmp/backup", error: null },
+      preferences: createDefaultPreferences(),
     });
 
     useAppStore.getState().resetFile();
@@ -99,6 +102,26 @@ describe("useAppStore", () => {
       backups: [],
       lastSaveResult: null,
       recentFiles: ["/tmp/config.json"],
+    });
+  });
+
+  it("updates preferences without disturbing file state", () => {
+    const store = useAppStore.getState();
+
+    store.updateEditorPreferences({ fontSize: 16, tabSize: 4 });
+    store.setThemePreference("dark");
+    store.setDefaultOpenMode("diff");
+
+    expect(useAppStore.getState()).toMatchObject({
+      currentFile: null,
+      preferences: {
+        themePreference: "dark",
+        defaultOpenMode: "diff",
+        editor: {
+          fontSize: 16,
+          tabSize: 4,
+        },
+      },
     });
   });
 });

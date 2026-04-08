@@ -16,6 +16,7 @@ export function RawEditor() {
     originalContent,
     currentFile,
     setValidationErrors,
+    preferences,
   } = useAppStore();
 
   const editorLanguage = currentFile?.format === "jsonc"
@@ -90,12 +91,12 @@ export function RawEditor() {
             theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               minimap: { enabled: false },
-              fontSize: 13,
-              lineNumbers: "on",
-              wordWrap: "on",
+              fontSize: preferences.editor.fontSize,
+              lineNumbers: preferences.editor.showLineNumbers ? "on" : "off",
+              wordWrap: preferences.editor.wordWrap ? "on" : "off",
               scrollBeyondLastLine: false,
               automaticLayout: true,
-              tabSize: 2,
+              tabSize: preferences.editor.tabSize,
               padding: { top: 22, bottom: 22 },
             }}
           />

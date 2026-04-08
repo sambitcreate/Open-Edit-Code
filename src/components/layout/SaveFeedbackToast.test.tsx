@@ -1,5 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { SaveFeedbackToast } from "./SaveFeedbackToast";
 
@@ -24,6 +25,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    preferences: createDefaultPreferences(),
     ...overrides,
   });
 }

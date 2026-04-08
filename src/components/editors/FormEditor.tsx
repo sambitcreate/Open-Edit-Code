@@ -1,8 +1,10 @@
 import { JsonForms } from "@jsonforms/react";
 import { materialCells, materialRenderers } from "@jsonforms/material-renderers";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { getJsonFormatPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { buildSchemaFromData, buildUiSchemaFromData, getDataSections } from "@/lib/schema";
+import { serializeJson } from "@/lib/parse";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 import { deletableControlRenderer } from "./DeletableControl";
 import { useEffect, useCallback, useMemo } from "react";
@@ -13,7 +15,7 @@ export function FormEditor() {
     () => createTheme({ palette: { mode: themeMode } }),
     [themeMode]
   );
-  const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
+  const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent, currentFile, configRootKind, preferences } = useAppStore();
   const renderers = useMemo(
     () => [...materialRenderers, deletableControlRenderer],
     []
@@ -29,12 +31,16 @@ export function FormEditor() {
     ({ data }: { data: Record<string, unknown> }) => {
       if (data !== undefined) {
         setConfigData(data);
-        const serialized = JSON.stringify(data, null, 2);
+        const serialized = serializeJson(
+          data,
+          configRootKind ?? "object",
+          getJsonFormatPreferences(preferences, currentFile?.format ?? "json")
+        );
         setRawContent(serialized);
         setDirty(serialized !== originalContent);
       }
     },
-    [setConfigData, setDirty, setRawContent, originalContent]
+    [configRootKind, currentFile?.format, originalContent, preferences, setConfigData, setDirty, setRawContent]
   );
 
   useEffect(() => {

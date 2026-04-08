@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useMemo, useRef } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Settings2 } from "lucide-react";
 import "./App.css";
 import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/fileSession";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
+import { SettingsDrawer } from "@/components/layout/SettingsDrawer";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { WelcomeScreen } from "@/components/layout/WelcomeScreen";
 import { SaveFeedbackToast } from "@/components/layout/SaveFeedbackToast";
@@ -25,6 +27,7 @@ import { DiffViewer } from "@/components/editors/DiffViewer";
 
 function App() {
   useSystemTheme();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const {
     currentFile,
@@ -72,6 +75,15 @@ function App() {
       if (isCmd && e.key === "s" && !e.shiftKey) {
         e.preventDefault();
         document.getElementById("save-btn")?.click();
+      }
+
+      if (isCmd && e.key === ",") {
+        e.preventDefault();
+        setIsSettingsOpen(true);
+      }
+
+      if (e.key === "Escape") {
+        setIsSettingsOpen(false);
       }
     }
 
@@ -155,11 +167,23 @@ function App() {
   return (
     <div className="app-shell">
       <SaveFeedbackToast />
+      <SettingsDrawer open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       <div className="app-topbar-shell shrink-0">
         <div className="app-topbar-panel">
           <FileOpener />
           <ModeTabs />
-          <SaveControls />
+          <div className="toolbar-cluster toolbar-cluster-end">
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              className="toolbar-button toolbar-button-secondary"
+              title="Preferences (Cmd+,)"
+            >
+              <Settings2 className="w-4 h-4" />
+              Preferences
+            </button>
+            <SaveControls />
+          </div>
         </div>
       </div>
 

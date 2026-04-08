@@ -124,6 +124,30 @@ describe("parse helpers", () => {
     ].join("\n"));
   });
 
+  it("sorts nested object keys and respects requested indentation", () => {
+    expect(
+      serializeJson(
+        {
+          zebra: true,
+          alpha: {
+            delta: 4,
+            beta: 2,
+          },
+        },
+        "object",
+        { indentSize: 4, sortKeys: true }
+      )
+    ).toBe([
+      "{",
+      '    "alpha": {',
+      '        "beta": 2,',
+      '        "delta": 4',
+      "    },",
+      '    "zebra": true',
+      "}",
+    ].join("\n"));
+  });
+
   it("extracts file names from paths", () => {
     expect(getFileName("/tmp/config.json")).toBe("config.json");
     expect(getFileName("C:\\temp\\config.json")).toBe("config.json");

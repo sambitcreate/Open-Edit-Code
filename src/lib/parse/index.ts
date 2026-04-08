@@ -1,4 +1,4 @@
-import type { ConfigRootKind, FileFormat } from "@/types";
+import type { ConfigRootKind, FileFormat, JsonFormatPreferences } from "@/types";
 
 interface ParseResult {
   data: Record<string, unknown> | null;
@@ -46,12 +46,32 @@ export function parseJson(content: string): ParseResult {
   }
 }
 
+function sortJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortJsonValue);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, sortJsonValue(nestedValue)])
+    );
+  }
+
+  return value;
+}
+
 export function serializeJson(
   data: Record<string, unknown>,
-  rootKind: ConfigRootKind = "object"
+  rootKind: ConfigRootKind = "object",
+  options?: Partial<JsonFormatPreferences>
 ): string {
   const output = rootKind === "array" ? data._root : data;
-  return JSON.stringify(output, null, 2);
+  const normalized = options?.sortKeys ? sortJsonValue(output) : output;
+  const indentSize = options?.indentSize === 4 ? 4 : 2;
+
+  return JSON.stringify(normalized, null, indentSize);
 }
 
 export function stripJsoncComments(content: string): string {

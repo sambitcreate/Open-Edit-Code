@@ -1,5 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
+import { useAppStore } from "@/lib/state/store";
 import { useSystemTheme } from "./useSystemTheme";
 
 type MediaQueryListener = (event: MediaQueryListEvent) => void;
@@ -42,6 +44,7 @@ describe("useSystemTheme", () => {
   beforeEach(() => {
     document.documentElement.dataset.theme = "";
     document.documentElement.classList.remove("jse-theme-dark");
+    useAppStore.setState({ preferences: createDefaultPreferences() });
   });
 
   afterEach(() => {
@@ -72,6 +75,17 @@ describe("useSystemTheme", () => {
     act(() => {
       mql.setMatches(true);
     });
+
+    expect(result.current).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.classList.contains("jse-theme-dark")).toBe(true);
+  });
+
+  it("prefers the pinned theme over the system theme", () => {
+    stubMatchMedia(false);
+    useAppStore.getState().setThemePreference("dark");
+
+    const { result } = renderHook(() => useSystemTheme());
 
     expect(result.current).toBe("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");

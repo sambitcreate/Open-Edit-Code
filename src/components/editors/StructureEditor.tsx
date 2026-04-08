@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback } from "react";
+import { getJsonFormatPreferences } from "@/lib/preferences";
+import { serializeJson } from "@/lib/parse";
 import { useAppStore } from "@/lib/state/store";
 
 export function StructureEditor() {
-  const { configData, setConfigData, setRawContent, setDirty, originalContent, currentFile } = useAppStore();
+  const { configData, setConfigData, setRawContent, setDirty, originalContent, currentFile, preferences } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<unknown>(null);
   const originalContentRef = useRef(originalContent);
@@ -16,12 +18,16 @@ export function StructureEditor() {
       if (updatedContent.json !== undefined && updatedContent.json !== null) {
         const data = updatedContent.json as Record<string, unknown>;
         setConfigData(data);
-        const serialized = JSON.stringify(data, null, 2);
+        const serialized = serializeJson(
+          data,
+          "object",
+          getJsonFormatPreferences(preferences, currentFile?.format ?? "json")
+        );
         setRawContent(serialized);
         setDirty(serialized !== originalContentRef.current);
       }
     },
-    [setConfigData, setDirty, setRawContent]
+    [currentFile?.format, preferences, setConfigData, setDirty, setRawContent]
   );
 
   useEffect(() => {

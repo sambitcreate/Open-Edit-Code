@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { FileOpener } from "./FileOpener";
 
@@ -40,6 +41,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    preferences: createDefaultPreferences(),
     ...overrides,
   });
 }
@@ -123,6 +125,10 @@ describe("FileOpener", () => {
     render(<FileOpener />);
     const user = userEvent.setup();
 
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Recent files/i })).toBeEnabled();
+    });
+
     await user.click(screen.getByRole("button", { name: /Recent files/i }));
     await user.click(screen.getByRole("button", { name: /older\.json/i }));
 
@@ -131,5 +137,29 @@ describe("FileOpener", () => {
     });
 
     expect(useAppStore.getState().currentFile?.path).toBe("/tmp/older.json");
+  });
+
+  it("uses the preferred default editor mode when the opened file supports it", async () => {
+    mockOpen.mockResolvedValue("/tmp/next.json");
+    mockConfirm.mockResolvedValue(true);
+    mockInvoke.mockResolvedValue({
+      path: "/tmp/next.json",
+      content: '{"name":"after"}',
+      format: "json",
+    });
+
+    resetStore({
+      preferences: {
+        ...createDefaultPreferences(),
+        defaultOpenMode: "diff",
+      },
+    });
+
+    render(<FileOpener />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Open File" }));
+
+    await waitFor(() => {
+      expect(useAppStore.getState().editorMode).toBe("diff");
+    });
   });
 });

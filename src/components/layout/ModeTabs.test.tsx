@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { ModeTabs } from "./ModeTabs";
 
@@ -24,6 +25,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    preferences: createDefaultPreferences(),
     ...overrides,
   });
 }

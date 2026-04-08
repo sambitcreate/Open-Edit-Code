@@ -26,6 +26,20 @@ pub struct BackupInfo {
     pub original_path: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum BackupRetentionMode {
+    Count,
+    Age,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupRetentionSettings {
+    pub mode: BackupRetentionMode,
+    pub value: u32,
+}
+
 fn detect_format(path: &str) -> String {
     let lower = path.to_lowercase();
     if lower.ends_with(".jsonc") {
@@ -58,10 +72,91 @@ fn get_file_backup_dir(app_data_dir: &Path, path: &str) -> PathBuf {
     get_backup_dir(app_data_dir).join(encode_path_for_backup_dir(path))
 }
 
+fn extract_backup_timestamp(name: &str) -> Option<String> {
+    if !name.ends_with(".bak") {
+        return None;
+    }
+
+    let stem = name.trim_end_matches(".bak");
+    let mut parts = stem.rsplitn(3, '_');
+    let time = parts.next()?;
+    let date = parts.next()?;
+
+    if date.len() == 8 && time.len() == 6 {
+        Some(format!("{}_{}", date, time))
+    } else {
+        None
+    }
+}
+
+fn parse_backup_timestamp(timestamp: &str) -> Option<chrono::NaiveDateTime> {
+    chrono::NaiveDateTime::parse_from_str(timestamp, "%Y%m%d_%H%M%S").ok()
+}
+
+fn backup_entries(backup_dir: &Path) -> Result<Vec<(PathBuf, String)>, String> {
+    if !backup_dir.exists() {
+        return Ok(vec![]);
+    }
+
+    let mut entries = Vec::new();
+    let dir_entries =
+        fs::read_dir(backup_dir).map_err(|e| format!("Failed to read backup dir: {}", e))?;
+
+    for entry in dir_entries.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        let Some(timestamp) = extract_backup_timestamp(name) else {
+            continue;
+        };
+        entries.push((path, timestamp));
+    }
+
+    entries.sort_by(|left, right| right.1.cmp(&left.1));
+    Ok(entries)
+}
+
+fn prune_backups(
+    backup_dir: &Path,
+    retention: &BackupRetentionSettings,
+) -> Result<(), String> {
+    let backups = backup_entries(backup_dir)?;
+
+    match retention.mode {
+        BackupRetentionMode::Count => {
+            let keep_count = retention.value as usize;
+            for (path, _) in backups.into_iter().skip(keep_count) {
+                fs::remove_file(&path)
+                    .map_err(|e| format!("Failed to prune backup {}: {}", path.display(), e))?;
+            }
+        }
+        BackupRetentionMode::Age => {
+            let cutoff = chrono::Local::now().naive_local()
+                - chrono::Duration::days(i64::from(retention.value));
+
+            for (path, timestamp) in backups {
+                let Some(parsed) = parse_backup_timestamp(&timestamp) else {
+                    continue;
+                };
+
+                if parsed < cutoff {
+                    fs::remove_file(&path).map_err(|e| {
+                        format!("Failed to prune expired backup {}: {}", path.display(), e)
+                    })?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn save_file_with_backup(
     app_data_dir: &Path,
     path: &str,
     content: &str,
+    backup_retention: Option<BackupRetentionSettings>,
 ) -> Result<SaveResult, String> {
     let original_path = Path::new(path);
     if !original_path.exists() {
@@ -94,6 +189,10 @@ fn save_file_with_backup(
     fs::rename(&temp_path, original_path)
         .map_err(|e| format!("Failed to replace original file: {}", e))?;
 
+    if let Some(retention) = backup_retention {
+        prune_backups(&backup_dir, &retention)?;
+    }
+
     Ok(SaveResult {
         success: true,
         backup_path: Some(backup_path.to_string_lossy().to_string()),
@@ -107,31 +206,15 @@ fn list_backups_in_dir(backup_dir: &Path, original_path: &str) -> Result<Vec<Bac
     }
 
     let mut backups: Vec<BackupInfo> = Vec::new();
-    let entries =
-        fs::read_dir(backup_dir).map_err(|e| format!("Failed to read backup dir: {}", e))?;
 
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            if name.ends_with(".bak") {
-                let stem = name.trim_end_matches(".bak");
-                let parts: Vec<_> = stem.split('_').collect();
-                let timestamp = if parts.len() >= 2 {
-                    format!("{}_{}", parts[parts.len() - 2], parts[parts.len() - 1])
-                } else {
-                    stem.to_string()
-                };
-
-                backups.push(BackupInfo {
-                    path: path.to_string_lossy().to_string(),
-                    timestamp,
-                    original_path: original_path.to_string(),
-                });
-            }
-        }
+    for (path, timestamp) in backup_entries(backup_dir)? {
+        backups.push(BackupInfo {
+            path: path.to_string_lossy().to_string(),
+            timestamp,
+            original_path: original_path.to_string(),
+        });
     }
 
-    backups.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     Ok(backups)
 }
 
@@ -151,13 +234,14 @@ pub fn save_file(
     app: tauri::AppHandle,
     path: String,
     content: String,
+    backup_retention: Option<BackupRetentionSettings>,
 ) -> Result<SaveResult, String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {}", e))?;
 
-    save_file_with_backup(&app_data_dir, &path, &content)
+    save_file_with_backup(&app_data_dir, &path, &content, backup_retention)
 }
 
 #[command]
@@ -258,8 +342,9 @@ mod tests {
         fs::write(&file_path, "{\"name\":\"before\"}").expect("write original file");
 
         let path_string = file_path.to_string_lossy().to_string();
-        let result = save_file_with_backup(&app_data_dir, &path_string, "{\"name\":\"after\"}")
-            .expect("save file with backup");
+        let result =
+            save_file_with_backup(&app_data_dir, &path_string, "{\"name\":\"after\"}", None)
+                .expect("save file with backup");
 
         let backup_path = PathBuf::from(result.backup_path.expect("backup path present"));
 
@@ -315,9 +400,9 @@ mod tests {
         let first_path = first_file.to_string_lossy().to_string();
         let second_path = second_file.to_string_lossy().to_string();
 
-        save_file_with_backup(&app_data_dir, &first_path, "{\"name\":\"first-after\"}")
+        save_file_with_backup(&app_data_dir, &first_path, "{\"name\":\"first-after\"}", None)
             .expect("save first file");
-        save_file_with_backup(&app_data_dir, &second_path, "{\"name\":\"second-after\"}")
+        save_file_with_backup(&app_data_dir, &second_path, "{\"name\":\"second-after\"}", None)
             .expect("save second file");
 
         let first_backups = list_backups_in_dir(
@@ -340,6 +425,75 @@ mod tests {
         fs::remove_dir_all(&app_data_dir).expect("remove app data dir");
         fs::remove_dir_all(&first_dir).expect("remove first dir");
         fs::remove_dir_all(&second_dir).expect("remove second dir");
+    }
+
+    #[test]
+    fn prune_backups_keeps_only_the_requested_count() {
+        let backup_dir = temp_path("prune-count");
+        fs::create_dir_all(&backup_dir).expect("create backup dir");
+
+        fs::write(backup_dir.join("settings.json_20240101_010101.bak"), "one")
+            .expect("write oldest backup");
+        fs::write(backup_dir.join("settings.json_20240201_010101.bak"), "two")
+            .expect("write middle backup");
+        fs::write(backup_dir.join("settings.json_20240301_010101.bak"), "three")
+            .expect("write newest backup");
+
+        prune_backups(
+            &backup_dir,
+            &BackupRetentionSettings {
+                mode: BackupRetentionMode::Count,
+                value: 2,
+            },
+        )
+        .expect("prune backups");
+
+        let backups =
+            list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list pruned backups");
+        assert_eq!(backups.len(), 2);
+        assert_eq!(backups[0].timestamp, "20240301_010101");
+        assert_eq!(backups[1].timestamp, "20240201_010101");
+
+        fs::remove_dir_all(&backup_dir).expect("remove backup dir");
+    }
+
+    #[test]
+    fn prune_backups_removes_entries_older_than_the_requested_age() {
+        let backup_dir = temp_path("prune-age");
+        fs::create_dir_all(&backup_dir).expect("create backup dir");
+
+        let now = chrono::Local::now();
+        let expired = now - chrono::Duration::days(45);
+        let fresh = now - chrono::Duration::days(5);
+
+        fs::write(
+            backup_dir.join(format!(
+                "settings.json_{}.bak",
+                expired.format("%Y%m%d_%H%M%S")
+            )),
+            "old",
+        )
+        .expect("write expired backup");
+        fs::write(
+            backup_dir.join(format!("settings.json_{}.bak", fresh.format("%Y%m%d_%H%M%S"))),
+            "new",
+        )
+        .expect("write fresh backup");
+
+        prune_backups(
+            &backup_dir,
+            &BackupRetentionSettings {
+                mode: BackupRetentionMode::Age,
+                value: 30,
+            },
+        )
+        .expect("prune backups by age");
+
+        let backups = list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list backups");
+        assert_eq!(backups.len(), 1);
+        assert_eq!(backups[0].timestamp, fresh.format("%Y%m%d_%H%M%S").to_string());
+
+        fs::remove_dir_all(&backup_dir).expect("remove backup dir");
     }
 
     #[test]
