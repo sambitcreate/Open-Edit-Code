@@ -18,6 +18,9 @@ describe("Sidebar", () => {
         content: "{}",
         format: "json",
         fileName: "opencode.json",
+        lastModified: null,
+        sizeBytes: 2,
+        isReadOnly: false,
       },
       originalContent: "{}",
       rawContent: "{}",
@@ -30,6 +33,8 @@ describe("Sidebar", () => {
       isSaving: false,
       lastSaveResult: null,
       activeSection: "mcp",
+      fileConflict: null,
+      jsoncCommentWarningAcceptedFor: null,
     });
   });
 

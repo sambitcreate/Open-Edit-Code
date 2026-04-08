@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/lib/state/store";
 import { FileOpener } from "./FileOpener";
 
-const { mockInvoke, mockConfirm, mockOpen } = vi.hoisted(() => ({
+const { mockInvoke, mockConfirm, mockOpen, mockStat } = vi.hoisted(() => ({
   mockInvoke: vi.fn(),
   mockConfirm: vi.fn(),
   mockOpen: vi.fn(),
+  mockStat: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -19,6 +20,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockOpen,
 }));
 
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  stat: mockStat,
+}));
+
 function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> = {}) {
   useAppStore.setState({
     currentFile: {
@@ -26,6 +31,9 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
       content: '{"name":"before"}',
       format: "json",
       fileName: "current.json",
+      lastModified: "2026-04-08T10:00:00.000Z",
+      sizeBytes: 17,
+      isReadOnly: false,
     },
     originalContent: '{"name":"before"}',
     rawContent: '{"name":"edited"}',
@@ -38,6 +46,8 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    fileConflict: null,
+    jsoncCommentWarningAcceptedFor: null,
     ...overrides,
   });
 }
@@ -47,6 +57,12 @@ describe("FileOpener", () => {
     mockInvoke.mockReset();
     mockConfirm.mockReset();
     mockOpen.mockReset();
+    mockStat.mockReset();
+    mockStat.mockResolvedValue({
+      mtime: new Date("2026-04-08T10:00:00.000Z"),
+      size: 17,
+      readonly: false,
+    });
     resetStore();
   });
 
@@ -84,6 +100,9 @@ describe("FileOpener", () => {
       path: "/tmp/next.json",
       content: '{"name":"after"}',
       format: "json",
+      last_modified: "2026-04-08T10:02:00.000Z",
+      readonly: false,
+      size: 16,
     });
 
     render(<FileOpener />);
@@ -97,6 +116,7 @@ describe("FileOpener", () => {
       currentFile: {
         path: "/tmp/next.json",
         fileName: "next.json",
+        isReadOnly: false,
       },
       originalContent: '{"name":"after"}',
       rawContent: '{"name":"after"}',

@@ -1,6 +1,58 @@
-import { BookOpen, Flower2, FolderOpen, Phone } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { CheckCircle2, BookOpen, Circle, FolderOpen, Phone } from "lucide-react";
 
-export function WelcomeScreen() {
+type WelcomeScreenProps = {
+  onOpenFile: () => void | Promise<void>;
+};
+
+type ChecklistItem = {
+  id: string;
+  label: string;
+  detail: string;
+  icon: ReactNode;
+  action?: "open-file" | "toggle";
+};
+
+const checklistItems: ChecklistItem[] = [
+  {
+    id: "open-file",
+    label: "Open a config file",
+    detail: "Start with JSON, JSONC, YAML, or TOML.",
+    icon: <FolderOpen className="w-4 h-4" />,
+    action: "open-file",
+  },
+  {
+    id: "switch-mode",
+    label: "Compare Form and Raw views",
+    detail: "Use the mode tabs to move between structured and raw editing.",
+    icon: <BookOpen className="w-4 h-4" />,
+    action: "toggle",
+  },
+  {
+    id: "save-ready",
+    label: "Save when you are ready",
+    detail: "Keep an eye on the status bar for validation and dirty-state updates.",
+    icon: <Phone className="w-4 h-4" />,
+    action: "toggle",
+  },
+];
+
+export function WelcomeScreen({ onOpenFile }: WelcomeScreenProps) {
+  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+
+  async function handleChecklistAction(item: ChecklistItem) {
+    if (item.action === "open-file") {
+      setCompleted((current) => ({ ...current, [item.id]: true }));
+      void onOpenFile();
+      return;
+    }
+
+    setCompleted((current) => ({
+      ...current,
+      [item.id]: !current[item.id],
+    }));
+  }
+
   return (
     <div className="welcome-shell">
       <div className="welcome-card">
@@ -27,7 +79,9 @@ export function WelcomeScreen() {
         </div>
 
         <button
-          onClick={() => document.getElementById("open-file-btn")?.click()}
+          type="button"
+          onClick={onOpenFile}
+          aria-label="Open a config file"
           className="raised-button welcome-open-button"
         >
           <FolderOpen className="w-4 h-4" />
@@ -40,22 +94,34 @@ export function WelcomeScreen() {
         </div>
       </div>
 
-      <div className="task-list-preview">
-        <div className="task-item task-item-peach">
-          <BookOpen className="task-icon task-icon-peach" />
-          <span className="task-text">Open config file</span>
-          <span className="task-circle task-circle-peach" />
-        </div>
-        <div className="task-item task-item-mint">
-          <Flower2 className="task-icon task-icon-mint" />
-          <span className="task-text">Review sections</span>
-          <span className="task-circle task-circle-mint" />
-        </div>
-        <div className="task-item task-item-blue">
-          <Phone className="task-icon task-icon-blue" />
-          <span className="task-text">Save when ready</span>
-          <span className="task-circle task-circle-blue" />
-        </div>
+      <div className="task-list-preview" aria-label="Getting started checklist">
+        <h2 className="task-list-heading">Getting started</h2>
+        {checklistItems.map((item, index) => {
+          const tone = index === 0 ? "peach" : index === 1 ? "mint" : "blue";
+          const isDone = Boolean(completed[item.id]);
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleChecklistAction(item)}
+              aria-label={item.label}
+              aria-pressed={isDone}
+              className={`task-item task-item-${tone} task-item-button ${isDone ? "task-item-done" : ""}`}
+            >
+              <span className={`task-icon-shell task-icon-${tone}`}>
+                {item.icon}
+              </span>
+              <span className="task-copy">
+                <span className="task-text">{item.label}</span>
+                <span className="task-detail">{item.detail}</span>
+              </span>
+              <span className={`task-circle task-circle-${tone}`}>
+                {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3 h-3" />}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

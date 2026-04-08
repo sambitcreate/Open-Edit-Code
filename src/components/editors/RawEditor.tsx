@@ -1,4 +1,6 @@
-import { lazy, Suspense, useCallback } from "react";
+import { lazy, Suspense, useCallback, useMemo } from "react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/state/store";
 import { parseContent, supportsStructuredEditing } from "@/lib/parse";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
@@ -23,6 +25,12 @@ export function RawEditor() {
     : currentFile?.format === "toml"
       ? "ini"
       : currentFile?.format ?? "json";
+  const isEmptyFile = Boolean(currentFile && !currentFile.content.trim());
+  const isLargeFile = Boolean(currentFile && currentFile.content.length > 750_000);
+  const editorTitle = useMemo(
+    () => `${currentFile ? `${currentFile.fileName} · ` : ""}Raw`,
+    [currentFile]
+  );
 
   const handleChange = useCallback(
     (value: string | undefined) => {
@@ -64,7 +72,8 @@ export function RawEditor() {
     return (
       <div className="editor-empty-state">
         <div className="editor-empty-card">
-          Open a file to edit
+          <div className="editor-empty-title">Open a file to edit</div>
+          <p className="editor-empty-copy">Raw editing becomes available once a file is opened.</p>
         </div>
       </div>
     );
@@ -72,11 +81,33 @@ export function RawEditor() {
 
   return (
     <div className="editor-panel-shell">
+      <header className="editor-panel-header">
+        <div>
+          <h2 className="editor-section-heading">{editorTitle}</h2>
+          <p className="editor-section-breadcrumb">
+            {currentFile.path}
+          </p>
+        </div>
+        <div className="editor-context-stack">
+          {isEmptyFile && (
+            <div className="editor-context-banner">This file is empty, so the editor starts blank.</div>
+          )}
+          {isLargeFile && (
+            <div className={cn("editor-context-banner", "editor-context-banner-warning")}>
+              Large file detected. Monaco may take a moment to finish loading and rendering.
+            </div>
+          )}
+        </div>
+      </header>
       <Suspense
         fallback={
-          <div className="editor-empty-state">
+          <div className="editor-empty-state editor-empty-state-loading">
             <div className="editor-empty-card">
-              Loading editor...
+              <div className="editor-loading-shell" aria-hidden="true">
+                <Loader2 className="editor-loading-spinner" />
+              </div>
+              <div className="editor-empty-title">Loading editor</div>
+              <p className="editor-empty-copy">Monaco is still loading for the first time.</p>
             </div>
           </div>
         }

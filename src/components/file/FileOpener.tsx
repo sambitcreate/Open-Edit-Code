@@ -9,7 +9,9 @@ export function FileOpener() {
     <div className="toolbar-cluster toolbar-cluster-start">
       <button
         id="open-file-btn"
+        type="button"
         onClick={openFileIntoStore}
+        aria-label="Open File"
         className="toolbar-button toolbar-button-primary"
         title="Open file (Cmd+O)"
       >
@@ -22,7 +24,7 @@ export function FileOpener() {
             {currentFile.fileName}
           </span>
           {dirty && (
-            <span className="file-chip-dot" title="Unsaved changes" />
+            <span className="file-chip-dot file-chip-dot-pulse" title="Unsaved changes" />
           )}
         </div>
       )}

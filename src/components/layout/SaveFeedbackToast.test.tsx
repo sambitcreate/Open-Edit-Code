@@ -10,6 +10,9 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
       content: "{}",
       format: "json",
       fileName: "config.json",
+      lastModified: null,
+      sizeBytes: 2,
+      isReadOnly: false,
     },
     originalContent: "{}",
     rawContent: "{}",
@@ -22,6 +25,8 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    fileConflict: null,
+    jsoncCommentWarningAcceptedFor: null,
     ...overrides,
   });
 }

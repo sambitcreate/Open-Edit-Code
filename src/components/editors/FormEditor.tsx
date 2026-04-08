@@ -1,11 +1,12 @@
+import { useEffect, useCallback, useMemo } from "react";
 import { JsonForms } from "@jsonforms/react";
 import { materialCells, materialRenderers } from "@jsonforms/material-renderers";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/state/store";
 import { buildSchemaFromData, buildUiSchemaFromData, getDataSections } from "@/lib/schema";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 import { deletableControlRenderer } from "./DeletableControl";
-import { useEffect, useCallback, useMemo } from "react";
 
 export function FormEditor() {
   const themeMode = useSystemTheme();
@@ -13,17 +14,23 @@ export function FormEditor() {
     () => createTheme({ palette: { mode: themeMode } }),
     [themeMode]
   );
-  const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
+  const { configData, activeSection, currentFile, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
   const renderers = useMemo(
     () => [...materialRenderers, deletableControlRenderer],
     []
   );
   const schema = useMemo(() => (configData ? buildSchemaFromData(configData) : null), [configData]);
   const sections = useMemo(() => getDataSections(configData), [configData]);
+  const activeSectionLabel = useMemo(
+    () => sections.find((section) => section.id === activeSection)?.label ?? sections[0]?.label ?? "Form",
+    [activeSection, sections]
+  );
   const uischema = useMemo(
     () => (configData ? buildUiSchemaFromData(configData, activeSection) : null),
     [activeSection, configData]
   );
+  const isEmptyFile = Boolean(currentFile && !currentFile.content.trim());
+  const isLargeFile = Boolean(currentFile && currentFile.content.length > 750_000);
 
   const handleChange = useCallback(
     ({ data }: { data: Record<string, unknown> }) => {
@@ -59,7 +66,6 @@ export function FormEditor() {
         display: grid;
         gap: 0.65rem;
       }
-      /* Outer input container (the "pill") */
       [class*="MuiInputBase-root"],
       [class*="MuiOutlinedInput-root"] {
         color: var(--color-foreground) !important;
@@ -67,7 +73,6 @@ export function FormEditor() {
         background: var(--color-surface-2) !important;
         box-shadow: var(--shadow-inset-1) !important;
       }
-      /* The <input> element itself — transparent so the container shows */
       [class*="MuiInputBase-input"],
       [class*="MuiOutlinedInput-input"] {
         color: var(--color-foreground) !important;
@@ -82,7 +87,6 @@ export function FormEditor() {
         color: var(--color-muted-foreground) !important;
         opacity: 1 !important;
       }
-      /* Notched outline: keep transparent fill so it never covers the input text */
       [class*="MuiOutlinedInput-notchedOutline"] {
         background: transparent !important;
         box-shadow: none !important;
@@ -175,9 +179,21 @@ export function FormEditor() {
 
   if (!configData || !schema || !uischema) {
     return (
-      <div className="editor-empty-state">
-        <div className="editor-empty-card">
-          No data to display in form mode
+      <div className="editor-scroll-shell">
+        <div className="editor-form-wrap">
+          <header className="editor-form-header">
+            <div>
+              <h2 className="editor-section-heading">Form / {activeSectionLabel}</h2>
+              <p className="editor-section-breadcrumb">
+                {currentFile?.fileName ?? "No file"} {activeSection ? `· ${activeSection}` : ""}
+              </p>
+            </div>
+          </header>
+          <div className="editor-empty-state">
+            <div className="editor-empty-card">
+              No data to display in form mode
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -187,16 +203,44 @@ export function FormEditor() {
     <ThemeProvider theme={muiTheme}>
       <div className="editor-scroll-shell">
         <div className="editor-form-wrap">
-          <JsonForms
-            schema={schema}
-            uischema={uischema}
-            data={configData}
-            renderers={renderers}
-            cells={materialCells}
-            onChange={handleChange}
-          />
-          {sections.length === 0 && (
-            <div className="editor-empty-card">No top-level fields available</div>
+          <header className="editor-form-header">
+            <div>
+              <h2 className="editor-section-heading">Form / {activeSectionLabel}</h2>
+              <p className="editor-section-breadcrumb">
+                {currentFile?.fileName ?? "No file"} {activeSection ? `· ${activeSection}` : ""}
+              </p>
+            </div>
+            <div className="editor-context-stack">
+              {isEmptyFile && (
+                <div className="editor-context-banner">
+                  This file is empty, so there is nothing to render yet.
+                </div>
+              )}
+              {isLargeFile && (
+                <div className={cn("editor-context-banner", "editor-context-banner-warning")}>
+                  Large file detected. Structured editing may take a moment to update.
+                </div>
+              )}
+            </div>
+          </header>
+          {sections.length === 0 ? (
+            <div className="editor-empty-state">
+              <div className="editor-empty-card">
+                <div className="editor-empty-title">No fields in this object yet</div>
+                <p className="editor-empty-copy">
+                  Add a key in Raw or Structure view to start building out the form.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <JsonForms
+              schema={schema}
+              uischema={uischema}
+              data={configData}
+              renderers={renderers}
+              cells={materialCells}
+              onChange={handleChange}
+            />
           )}
         </div>
       </div>
