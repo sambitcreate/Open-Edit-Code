@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "@/lib/state/store";
 
 export function StructureEditor() {
-  const { configData, setConfigData, setDirty, originalContent, currentFile } = useAppStore();
+  const { configData, setConfigData, setRawContent, setDirty, originalContent, currentFile } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<unknown>(null);
 
@@ -12,10 +12,11 @@ export function StructureEditor() {
         const data = updatedContent.json as Record<string, unknown>;
         setConfigData(data);
         const serialized = JSON.stringify(data, null, 2);
+        setRawContent(serialized);
         setDirty(serialized !== originalContent);
       }
     },
-    [setConfigData, setDirty, originalContent]
+    [setConfigData, setDirty, setRawContent, originalContent]
   );
 
   useEffect(() => {
@@ -71,8 +72,8 @@ export function StructureEditor() {
 
   if (!currentFile) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+      <div className="editor-empty-state">
+        <div className="editor-empty-card">
           Open a file to view structure
         </div>
       </div>
@@ -81,8 +82,8 @@ export function StructureEditor() {
 
   if (!configData) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+      <div className="editor-empty-state">
+        <div className="editor-empty-card">
           No data to display
         </div>
       </div>
@@ -90,10 +91,10 @@ export function StructureEditor() {
   }
 
   return (
-    <div className="h-full w-full p-3">
+    <div className="editor-panel-shell">
       <div
         ref={containerRef}
-        className="h-full w-full neu-card overflow-hidden jse-theme-dark"
+        className="editor-panel-card overflow-hidden"
       />
     </div>
   );
