@@ -8,15 +8,15 @@ export function StatusBar() {
   const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
 
   return (
-    <div className="h-7 bg-card border-t border-border flex items-center px-3 gap-4 text-[11px] text-muted-foreground">
+    <div className="statusbar-shell">
       {currentFile ? (
         <>
-          <span className="flex items-center gap-1.5" title={currentFile.path}>
+          <span className="status-pill" title={currentFile.path}>
             <FileText className="w-3 h-3" />
             {currentFile.format.toUpperCase()}
           </span>
-          <span>Schema: active</span>
-          <span className="flex items-center gap-1.5">
+          <span className="status-pill">Schema active</span>
+          <span className="status-pill">
             {errorCount > 0 ? (
               <>
                 <AlertCircle className="w-3 h-3 text-danger" />
@@ -35,17 +35,17 @@ export function StatusBar() {
             )}
           </span>
           {dirty && (
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-              <span className="text-warning font-medium">Unsaved</span>
+            <span className="status-pill status-pill-warning">
+              <span className="file-chip-dot" />
+              <span>Unsaved</span>
             </span>
           )}
-          <span className="ml-auto truncate max-w-[300px]" title={currentFile.path}>
+          <span className="status-path" title={currentFile.path}>
             {currentFile.path}
           </span>
         </>
       ) : (
-        <span>No file open — <kbd className="px-1 py-0.5 text-[10px] bg-background rounded border border-border font-mono">Cmd+O</kbd> to open</span>
+        <span className="status-empty">No file open <kbd className="status-kbd">Cmd+O</kbd> to open</span>
       )}
     </div>
   );
