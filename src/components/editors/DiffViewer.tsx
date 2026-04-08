@@ -1,11 +1,13 @@
 import { lazy, Suspense } from "react";
 import { useAppStore } from "@/lib/state/store";
+import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 
 const MonacoDiffEditor = lazy(() =>
   import("@monaco-editor/react").then((m) => ({ default: m.DiffEditor }))
 );
 
 export function DiffViewer() {
+  const theme = useSystemTheme();
   const { originalContent, rawContent, currentFile } = useAppStore();
 
   const editorLanguage = currentFile?.format === "jsonc"
@@ -41,7 +43,7 @@ export function DiffViewer() {
             original={originalContent}
             modified={rawContent}
             language={editorLanguage}
-            theme="vs"
+            theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               readOnly: true,
               minimap: { enabled: false },

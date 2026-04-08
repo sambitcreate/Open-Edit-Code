@@ -7,6 +7,7 @@ import { detectFormat, getFileName, parseContent, supportsStructuredEditing, sup
 import { getDataSections } from "@/lib/schema";
 import type { OpenFile } from "@/types";
 import { cn } from "@/lib/utils";
+import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
 import { StatusBar } from "@/components/layout/StatusBar";
@@ -19,6 +20,8 @@ import { StructureEditor } from "@/components/editors/StructureEditor";
 import { DiffViewer } from "@/components/editors/DiffViewer";
 
 function App() {
+  useSystemTheme();
+
   const {
     currentFile,
     configData,

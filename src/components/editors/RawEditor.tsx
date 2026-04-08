@@ -1,10 +1,12 @@
 import { lazy, Suspense, useCallback } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { parseContent, supportsStructuredEditing } from "@/lib/parse";
+import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 
 const MonacoEditor = lazy(() => import("@monaco-editor/react").then((m) => ({ default: m.default })));
 
 export function RawEditor() {
+  const theme = useSystemTheme();
   const {
     rawContent,
     setRawContent,
@@ -85,7 +87,7 @@ export function RawEditor() {
             defaultLanguage={editorLanguage}
             value={rawContent}
             onChange={handleChange}
-            theme="vs"
+            theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               minimap: { enabled: false },
               fontSize: 13,

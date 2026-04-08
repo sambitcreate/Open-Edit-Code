@@ -1,10 +1,17 @@
 import { JsonForms } from "@jsonforms/react";
 import { materialCells, materialRenderers } from "@jsonforms/material-renderers";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { useAppStore } from "@/lib/state/store";
 import { buildSchemaFromData, buildUiSchemaFromData, getDataSections } from "@/lib/schema";
+import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 import { useEffect, useCallback, useMemo } from "react";
 
 export function FormEditor() {
+  const themeMode = useSystemTheme();
+  const muiTheme = useMemo(
+    () => createTheme({ palette: { mode: themeMode } }),
+    [themeMode]
+  );
   const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
   const schema = useMemo(() => (configData ? buildSchemaFromData(configData) : null), [configData]);
   const sections = useMemo(() => getDataSections(configData), [configData]);
@@ -132,20 +139,22 @@ export function FormEditor() {
   }
 
   return (
-    <div className="editor-scroll-shell">
-      <div className="editor-form-wrap">
-        <JsonForms
-          schema={schema}
-          uischema={uischema}
-          data={configData}
-          renderers={materialRenderers}
-          cells={materialCells}
-          onChange={handleChange}
-        />
-        {sections.length === 0 && (
-          <div className="editor-empty-card">No top-level fields available</div>
-        )}
+    <ThemeProvider theme={muiTheme}>
+      <div className="editor-scroll-shell">
+        <div className="editor-form-wrap">
+          <JsonForms
+            schema={schema}
+            uischema={uischema}
+            data={configData}
+            renderers={materialRenderers}
+            cells={materialCells}
+            onChange={handleChange}
+          />
+          {sections.length === 0 && (
+            <div className="editor-empty-card">No top-level fields available</div>
+          )}
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
