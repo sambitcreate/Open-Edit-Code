@@ -21,7 +21,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     recentFiles: [],
     isSaving: false,
     lastSaveResult: null,
-    activeSection: "overview",
+    activeSection: "",
     ...overrides,
   });
 }

@@ -1,11 +1,25 @@
 import { useAppStore } from "@/lib/state/store";
+import { getDataSections } from "@/lib/schema";
+import { supportsVisualEditing } from "@/lib/parse";
 import { Check, AlertCircle, AlertTriangle, FileText } from "lucide-react";
+import { useMemo } from "react";
 
 export function StatusBar() {
-  const { currentFile, dirty, validationErrors } = useAppStore();
+  const { currentFile, dirty, validationErrors, configData, configRootKind, activeSection } = useAppStore();
+  const sections = useMemo(
+    () => (configRootKind === "object" ? getDataSections(configData) : []),
+    [configData, configRootKind]
+  );
 
   const errorCount = validationErrors.filter((e) => e.severity === "error").length;
   const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
+  const schemaStatus = !currentFile
+    ? null
+    : supportsVisualEditing(currentFile.format) && configRootKind === "object"
+      ? `${sections.length} top-level key${sections.length === 1 ? "" : "s"}`
+      : supportsVisualEditing(currentFile.format) && configRootKind === "array"
+        ? "Array root"
+        : "Raw mode only";
 
   return (
     <div className="statusbar-shell">
@@ -15,7 +29,10 @@ export function StatusBar() {
             <FileText className="w-3 h-3" />
             {currentFile.format.toUpperCase()}
           </span>
-          <span className="status-pill">Schema active</span>
+          {schemaStatus && <span className="status-pill">{schemaStatus}</span>}
+          {activeSection && sections.some((section) => section.id === activeSection) && (
+            <span className="status-pill">Section: {activeSection}</span>
+          )}
           <span className="status-pill">
             {errorCount > 0 ? (
               <>

@@ -14,7 +14,7 @@ function resetStore() {
     recentFiles: [],
     isSaving: false,
     lastSaveResult: null,
-    activeSection: "overview",
+    activeSection: "",
   });
 }
 

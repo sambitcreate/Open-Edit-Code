@@ -1,9 +1,10 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useAppStore } from "@/lib/state/store";
 import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
+import { getDataSections } from "@/lib/schema";
 import type { OpenFile } from "@/types";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -20,8 +21,27 @@ import { DiffViewer } from "@/components/editors/DiffViewer";
 function App() {
   const {
     currentFile,
+    configData,
+    configRootKind,
     editorMode,
+    activeSection,
+    setActiveSection,
   } = useAppStore();
+
+  const sidebarSections = useMemo(
+    () => (configRootKind === "object" ? getDataSections(configData) : []),
+    [configData, configRootKind]
+  );
+
+  useEffect(() => {
+    if (sidebarSections.length === 0) {
+      return;
+    }
+
+    if (!sidebarSections.some((section) => section.id === activeSection)) {
+      setActiveSection(sidebarSections[0].id);
+    }
+  }, [activeSection, setActiveSection, sidebarSections]);
 
   const handleOpenFile = useCallback(async () => {
     const selected = await dialogOpen({
@@ -125,8 +145,8 @@ function App() {
         </div>
       </div>
 
-      <div className={cn("app-body", currentFile && "app-body-with-sidebar")}>
-        {currentFile && <Sidebar />}
+      <div className={cn("app-body", sidebarSections.length > 0 && "app-body-with-sidebar")}>
+        <Sidebar sections={sidebarSections} />
         <main className="app-main">
           {currentFile ? renderEditor() : <WelcomeScreen />}
         </main>

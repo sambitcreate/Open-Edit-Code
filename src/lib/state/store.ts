@@ -42,7 +42,7 @@ export const useAppStore = create<AppStore>((set) => ({
   recentFiles: [],
   isSaving: false,
   lastSaveResult: null,
-  activeSection: "overview",
+  activeSection: "",
 
   setCurrentFile: (file) =>
     set((state) => {
@@ -89,5 +89,6 @@ export const useAppStore = create<AppStore>((set) => ({
       dirty: false,
       validationErrors: [],
       lastSaveResult: null,
+      activeSection: "",
     }),
 }));

@@ -1,11 +1,17 @@
 import { JsonForms } from "@jsonforms/react";
 import { materialCells, materialRenderers } from "@jsonforms/material-renderers";
 import { useAppStore } from "@/lib/state/store";
-import { defaultConfigSchema, defaultUiSchema } from "@/lib/schema";
-import { useEffect, useCallback } from "react";
+import { buildSchemaFromData, buildUiSchemaFromData, getDataSections } from "@/lib/schema";
+import { useEffect, useCallback, useMemo } from "react";
 
 export function FormEditor() {
-  const { configData, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
+  const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
+  const schema = useMemo(() => (configData ? buildSchemaFromData(configData) : null), [configData]);
+  const sections = useMemo(() => getDataSections(configData), [configData]);
+  const uischema = useMemo(
+    () => (configData ? buildUiSchemaFromData(configData, activeSection) : null),
+    [activeSection, configData]
+  );
 
   const handleChange = useCallback(
     ({ data }: { data: Record<string, unknown> }) => {
@@ -115,8 +121,8 @@ export function FormEditor() {
     };
   }, []);
 
-  if (!configData) {
-      return (
+  if (!configData || !schema || !uischema) {
+    return (
       <div className="editor-empty-state">
         <div className="editor-empty-card">
           No data to display in form mode
@@ -129,13 +135,16 @@ export function FormEditor() {
     <div className="editor-scroll-shell">
       <div className="editor-form-wrap">
         <JsonForms
-          schema={defaultConfigSchema}
-          uischema={defaultUiSchema}
+          schema={schema}
+          uischema={uischema}
           data={configData}
           renderers={materialRenderers}
           cells={materialCells}
           onChange={handleChange}
         />
+        {sections.length === 0 && (
+          <div className="editor-empty-card">No top-level fields available</div>
+        )}
       </div>
     </div>
   );
