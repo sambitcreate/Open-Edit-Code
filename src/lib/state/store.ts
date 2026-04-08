@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { ConfigRootKind, EditorMode, OpenFile, SaveResult, ValidationError } from "@/types";
+import type {
+  ConfigRootKind,
+  EditorMode,
+  FileConflict,
+  OpenFile,
+  SaveResult,
+  ValidationError,
+} from "@/types";
 
 interface AppStore {
   currentFile: OpenFile | null;
@@ -14,8 +21,11 @@ interface AppStore {
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
   activeSection: string;
+  fileConflict: FileConflict | null;
+  jsoncCommentWarningAcceptedFor: string | null;
 
   setCurrentFile: (file: OpenFile) => void;
+  updateCurrentFile: (updates: Partial<OpenFile>) => void;
   setOriginalContent: (content: string) => void;
   setRawContent: (content: string) => void;
   setConfigData: (data: Record<string, unknown> | null) => void;
@@ -27,6 +37,9 @@ interface AppStore {
   setIsSaving: (saving: boolean) => void;
   setLastSaveResult: (result: SaveResult | null) => void;
   setActiveSection: (section: string) => void;
+  setFileConflict: (conflict: FileConflict | null) => void;
+  acknowledgeFileConflict: () => void;
+  setJsoncCommentWarningAcceptedFor: (content: string | null) => void;
   resetFile: () => void;
 }
 
@@ -43,19 +56,39 @@ export const useAppStore = create<AppStore>((set) => ({
   isSaving: false,
   lastSaveResult: null,
   activeSection: "",
+  fileConflict: null,
+  jsoncCommentWarningAcceptedFor: null,
 
   setCurrentFile: (file) =>
     set((state) => {
       const recent = state.recentFiles.filter((p) => p !== file.path);
       return {
         currentFile: file,
+        fileConflict: null,
         recentFiles: [file.path, ...recent].slice(0, 10),
       };
     }),
 
+  updateCurrentFile: (updates) =>
+    set((state) => ({
+      currentFile: state.currentFile
+        ? {
+            ...state.currentFile,
+            ...updates,
+          }
+        : null,
+    })),
+
   setOriginalContent: (content) => set({ originalContent: content }),
 
-  setRawContent: (content) => set({ rawContent: content }),
+  setRawContent: (content) =>
+    set((state) => ({
+      rawContent: content,
+      jsoncCommentWarningAcceptedFor:
+        state.jsoncCommentWarningAcceptedFor === content
+          ? state.jsoncCommentWarningAcceptedFor
+          : null,
+    })),
 
   setConfigData: (data) => set({ configData: data }),
 
@@ -79,6 +112,21 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setActiveSection: (section) => set({ activeSection: section }),
 
+  setFileConflict: (conflict) => set({ fileConflict: conflict }),
+
+  acknowledgeFileConflict: () =>
+    set((state) => ({
+      fileConflict: state.fileConflict
+        ? {
+            ...state.fileConflict,
+            acknowledged: true,
+          }
+        : null,
+    })),
+
+  setJsoncCommentWarningAcceptedFor: (content) =>
+    set({ jsoncCommentWarningAcceptedFor: content }),
+
   resetFile: () =>
     set({
       currentFile: null,
@@ -90,5 +138,7 @@ export const useAppStore = create<AppStore>((set) => ({
       validationErrors: [],
       lastSaveResult: null,
       activeSection: "",
+      fileConflict: null,
+      jsoncCommentWarningAcceptedFor: null,
     }),
 }));

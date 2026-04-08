@@ -16,6 +16,8 @@ export default defineConfig(async () => ({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    exclude: ["**/.worktrees/**", "**/node_modules/**", "**/dist/**"],
   },
   server: {
     port: 1420,

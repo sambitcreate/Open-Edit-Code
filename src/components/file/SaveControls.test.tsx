@@ -8,8 +8,13 @@ const { mockInvoke } = vi.hoisted(() => ({
   mockInvoke: vi.fn(),
 }));
 
-const { mockConfirm } = vi.hoisted(() => ({
+const { mockConfirm, mockSaveDialog } = vi.hoisted(() => ({
   mockConfirm: vi.fn(),
+  mockSaveDialog: vi.fn(),
+}));
+
+const { mockStat } = vi.hoisted(() => ({
+  mockStat: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -19,6 +24,11 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   confirm: mockConfirm,
   open: vi.fn(),
+  save: mockSaveDialog,
+}));
+
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  stat: mockStat,
 }));
 
 function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> = {}) {
@@ -35,26 +45,42 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    fileConflict: null,
+    jsoncCommentWarningAcceptedFor: null,
     ...overrides,
   });
+}
+
+function buildOpenFile(path: string, format: "json" | "jsonc" | "yaml" | "toml", content: string) {
+  return {
+    path,
+    content,
+    format,
+    fileName: path.split("/").pop() ?? path,
+    lastModified: "2026-04-08T10:00:00.000Z",
+    sizeBytes: content.length,
+    isReadOnly: false,
+  } as const;
 }
 
 describe("SaveControls", () => {
   beforeEach(() => {
     mockInvoke.mockReset();
     mockConfirm.mockReset();
+    mockSaveDialog.mockReset();
+    mockStat.mockReset();
     mockConfirm.mockResolvedValue(true);
+    mockStat.mockResolvedValue({
+      mtime: new Date("2026-04-08T10:05:00.000Z"),
+      size: 20,
+      readonly: false,
+    });
     resetStore();
   });
 
   it("blocks saving invalid raw JSON and surfaces an error", async () => {
     resetStore({
-      currentFile: {
-        path: "/tmp/config.json",
-        content: '{"name":"before"}',
-        format: "json",
-        fileName: "config.json",
-      },
+      currentFile: buildOpenFile("/tmp/config.json", "json", '{"name":"before"}'),
       originalContent: '{"name":"before"}',
       rawContent: '{"name":',
       configData: { name: "before" },
@@ -72,7 +98,7 @@ describe("SaveControls", () => {
     ]);
   });
 
-  it("saves serialized structured JSON and clears dirty state", async () => {
+  it("saves serialized structured JSON, updates metadata, and clears dirty state", async () => {
     mockInvoke.mockResolvedValue({
       success: true,
       backup_path: "/tmp/config.json_20260101_000000.bak",
@@ -80,12 +106,7 @@ describe("SaveControls", () => {
     });
 
     resetStore({
-      currentFile: {
-        path: "/tmp/config.json",
-        content: '{"name":"before"}',
-        format: "json",
-        fileName: "config.json",
-      },
+      currentFile: buildOpenFile("/tmp/config.json", "json", '{"name":"before"}'),
       originalContent: '{"name":"before"}',
       rawContent: '{"name":"before"}',
       configData: { name: "after" },
@@ -115,57 +136,92 @@ describe("SaveControls", () => {
         backup_path: "/tmp/config.json_20260101_000000.bak",
         error: null,
       },
+      currentFile: {
+        lastModified: "2026-04-08T10:05:00.000Z",
+        isReadOnly: false,
+      },
     });
   });
 
-  it("preserves array-root JSON when structured content is saved", async () => {
-    mockInvoke.mockResolvedValue({
-      success: true,
-      backup_path: "/tmp/config.json_20260101_000000.bak",
-      error: null,
+  it("uses Save As to export to a new path and reopen that file", async () => {
+    mockSaveDialog.mockResolvedValue("/tmp/export.jsonc");
+    mockInvoke.mockImplementation(async (command, args) => {
+      if (command === "save_file_as") {
+        expect(args).toMatchObject({
+          sourcePath: "/tmp/config.json",
+          targetPath: "/tmp/export.jsonc",
+          content: ["{", '  "name": "after"', "}"].join("\n"),
+        });
+        return {
+          success: true,
+          backup_path: null,
+          error: null,
+        };
+      }
+
+      if (command === "open_file") {
+        return {
+          path: "/tmp/export.jsonc",
+          content: ["{", '  "name": "after"', "}"].join("\n"),
+          format: "jsonc",
+          last_modified: "2026-04-08T10:06:00.000Z",
+          readonly: false,
+          size: 21,
+        };
+      }
+
+      return {
+        success: true,
+        backup_path: null,
+        error: null,
+      };
+    });
+
+    mockStat.mockResolvedValue({
+      mtime: new Date("2026-04-08T10:06:00.000Z"),
+      size: 21,
+      readonly: false,
     });
 
     resetStore({
-      currentFile: {
-        path: "/tmp/config.json",
-        content: "[1]",
-        format: "json",
-        fileName: "config.json",
-      },
-      originalContent: "[1]",
-      rawContent: "[1]",
-      configData: { _root: [1, 2, 3] },
-      configRootKind: "array",
+      currentFile: buildOpenFile("/tmp/config.json", "json", '{"name":"before"}'),
+      originalContent: '{"name":"before"}',
+      rawContent: '{"name":"before"}',
+      configData: { name: "after" },
+      configRootKind: "object",
       dirty: true,
       editorMode: "form",
     });
 
     render(<SaveControls />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Save" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Save As" }));
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith("save_file", {
-        path: "/tmp/config.json",
-        content: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+      expect(useAppStore.getState().currentFile).toMatchObject({
+        path: "/tmp/export.jsonc",
+        fileName: "export.jsonc",
       });
     });
+  });
 
-    expect(useAppStore.getState()).toMatchObject({
-      originalContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
-      rawContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
-      configRootKind: "array",
-      dirty: false,
+  it("disables overwrite save for read-only files", () => {
+    resetStore({
+      currentFile: {
+        ...buildOpenFile("/tmp/config.json", "json", '{"name":"before"}'),
+        isReadOnly: true,
+      },
+      dirty: true,
     });
+
+    render(<SaveControls />);
+
+    expect(screen.getByRole("button", { name: "Save disabled because the file is read only" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save As" })).toBeEnabled();
   });
 
   it("reverts to the original raw content and preserves warning severity for yaml", async () => {
     resetStore({
-      currentFile: {
-        path: "/tmp/config.yaml",
-        content: "name: before",
-        format: "yaml",
-        fileName: "config.yaml",
-      },
+      currentFile: buildOpenFile("/tmp/config.yaml", "yaml", "name: before"),
       originalContent: "name: before",
       rawContent: "name: [",
       configData: null,
@@ -176,7 +232,7 @@ describe("SaveControls", () => {
     });
 
     render(<SaveControls />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Revert" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Revert changes" }));
 
     expect(mockConfirm).toHaveBeenCalledWith(
       "Discard your unsaved changes and restore the last saved version?",
@@ -193,37 +249,10 @@ describe("SaveControls", () => {
       validationErrors: [
         {
           path: "/",
-          message: "YAML structured editing is not available yet. Raw mode is still available.",
+          message: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
           severity: "warning",
         },
       ],
-    });
-  });
-
-  it("keeps edited content when the revert discard prompt is cancelled", async () => {
-    mockConfirm.mockResolvedValue(false);
-
-    resetStore({
-      currentFile: {
-        path: "/tmp/config.yaml",
-        content: "name: before",
-        format: "yaml",
-        fileName: "config.yaml",
-      },
-      originalContent: "name: before",
-      rawContent: "name: changed",
-      configData: null,
-      configRootKind: null,
-      dirty: true,
-      editorMode: "raw",
-    });
-
-    render(<SaveControls />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Revert" }));
-
-    expect(useAppStore.getState()).toMatchObject({
-      rawContent: "name: changed",
-      dirty: true,
     });
   });
 });

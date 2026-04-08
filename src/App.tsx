@@ -1,11 +1,12 @@
 import { useEffect, useCallback, useMemo, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { watch } from "@tauri-apps/plugin-fs";
 import "./App.css";
 import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
-import { confirmDiscardUnsavedChanges, openFileIntoStore } from "@/lib/fileSession";
+import { confirmDiscardUnsavedChanges, getCurrentFileStatus, loadFileIntoStore, openFileIntoStore } from "@/lib/fileSession";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
 import { StatusBar } from "@/components/layout/StatusBar";
@@ -27,7 +28,12 @@ function App() {
     configRootKind,
     editorMode,
     activeSection,
+    dirty,
+    fileConflict,
     setActiveSection,
+    updateCurrentFile,
+    setFileConflict,
+    acknowledgeFileConflict,
   } = useAppStore();
   const allowWindowCloseRef = useRef(false);
 
@@ -123,6 +129,105 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!currentFile) {
+      return;
+    }
+
+    let active = true;
+    let unwatch: (() => void) | undefined;
+    const baseline = {
+      lastModified: currentFile.lastModified,
+      sizeBytes: currentFile.sizeBytes,
+    };
+
+    const refreshFileStatus = async () => {
+      const status = await getCurrentFileStatus(currentFile.path, baseline);
+
+      if (!active || useAppStore.getState().currentFile?.path !== currentFile.path) {
+        return;
+      }
+
+      updateCurrentFile({
+        isReadOnly: status.isReadOnly,
+      });
+
+      const existingConflict = useAppStore.getState().fileConflict;
+
+      if (!status.changed) {
+        if (existingConflict) {
+          setFileConflict(null);
+        }
+        return;
+      }
+
+      if (existingConflict?.onDiskModifiedAt === status.lastModified) {
+        return;
+      }
+
+      setFileConflict({
+        onDiskModifiedAt: status.lastModified,
+        detectedAt: new Date().toISOString(),
+        acknowledged: false,
+      });
+    };
+
+    void refreshFileStatus();
+
+    watch(
+      currentFile.path,
+      () => {
+        void refreshFileStatus();
+      },
+      { delayMs: 250 }
+    ).then((cleanup) => {
+      if (!active) {
+        cleanup();
+        return;
+      }
+
+      unwatch = cleanup;
+    }).catch(() => {
+      // The focus refresh below still catches external edits if the watcher is unavailable.
+    });
+
+    const handleFocus = () => {
+      void refreshFileStatus();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", handleFocus);
+      unwatch?.();
+    };
+  }, [
+    currentFile?.path,
+    currentFile?.lastModified,
+    currentFile?.sizeBytes,
+    setFileConflict,
+    updateCurrentFile,
+  ]);
+
+  const handleReloadFromDisk = useCallback(async () => {
+    if (!currentFile) {
+      return;
+    }
+
+    if (dirty) {
+      const shouldDiscard = await confirmDiscardUnsavedChanges(
+        "Discard your unsaved changes and reload the version currently on disk?"
+      );
+
+      if (!shouldDiscard) {
+        return;
+      }
+    }
+
+    await loadFileIntoStore(currentFile.path);
+  }, [currentFile, dirty]);
+
   const renderEditor = () => {
     switch (editorMode) {
       case "form":
@@ -140,6 +245,9 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-editor">
+        Skip to main editor
+      </a>
       <SaveFeedbackToast />
       <div className="app-topbar-shell shrink-0">
         <div className="app-topbar-panel">
@@ -149,14 +257,37 @@ function App() {
         </div>
       </div>
 
+      {currentFile && fileConflict && !fileConflict.acknowledged && (
+        <div className="file-conflict-banner" role="alert">
+          <div className="file-conflict-copy">
+            <strong>File changed on disk.</strong>
+            <span>
+              {fileConflict.onDiskModifiedAt
+                ? ` Newer disk version detected at ${new Date(fileConflict.onDiskModifiedAt).toLocaleString()}.`
+                : " The file may have been changed or removed outside the app."}
+            </span>
+          </div>
+          <div className="file-conflict-actions">
+            <button type="button" className="toolbar-button toolbar-button-secondary" onClick={handleReloadFromDisk}>
+              Reload
+            </button>
+            <button type="button" className="toolbar-button toolbar-button-primary" onClick={acknowledgeFileConflict}>
+              Keep mine
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={cn("app-body", sidebarSections.length > 0 && "app-body-with-sidebar")}>
         <Sidebar sections={sidebarSections} />
-        <main className="app-main">
-          {currentFile ? renderEditor() : <WelcomeScreen />}
+        <main id="main-editor" className="app-main" tabIndex={-1} aria-label="Main editor">
+          {currentFile ? renderEditor() : <WelcomeScreen onOpenFile={handleOpenFile} />}
         </main>
       </div>
 
-      <StatusBar />
+      <div className="statusbar-region" role="status" aria-live="polite" aria-atomic="true">
+        <StatusBar />
+      </div>
     </div>
   );
 }

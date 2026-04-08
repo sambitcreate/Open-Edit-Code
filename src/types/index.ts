@@ -7,12 +7,31 @@ export interface OpenFile {
   content: string;
   format: FileFormat;
   fileName: string;
+  lastModified: string | null;
+  sizeBytes: number | null;
+  isReadOnly: boolean;
 }
 
 export interface SaveResult {
   success: boolean;
   backup_path: string | null;
   error: string | null;
+}
+
+export interface FileConflict {
+  onDiskModifiedAt: string | null;
+  detectedAt: string;
+  acknowledged: boolean;
+}
+
+export interface FileStatus {
+  path: string;
+  format: FileFormat;
+  exists: boolean;
+  changed: boolean;
+  lastModified: string | null;
+  isReadOnly: boolean;
+  sizeBytes: number | null;
 }
 
 export interface BackupInfo {
@@ -41,4 +60,6 @@ export interface AppState {
   recentFiles: string[];
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
+  fileConflict: FileConflict | null;
+  jsoncCommentWarningAcceptedFor: string | null;
 }
