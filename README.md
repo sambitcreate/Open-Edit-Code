@@ -9,7 +9,7 @@ Open a file, edit it through structured forms or a tree view, validate before sa
 
 ## Download
 
-Grab the latest `.dmg` from [**Releases**](https://github.com/sambitcreate/Open-Edit-Code/releases).
+Grab the latest `.dmg` from [**Releases**](https://github.com/sambitcreate/config-studio/releases).
 
 Mount it, drag **Config Studio** to Applications, then right-click → **Open** the first time to clear Gatekeeper (the app is not yet notarized).
 
@@ -89,8 +89,8 @@ src-tauri/            Rust backend
 ### Setup
 
 ```bash
-git clone https://github.com/sambitcreate/Open-Edit-Code.git
-cd Open-Edit-Code
+git clone https://github.com/sambitcreate/config-studio.git
+cd config-studio
 npm install
 ```
 

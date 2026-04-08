@@ -21,8 +21,8 @@ xcode-select --install
 ## Setup
 
 ```bash
-git clone https://github.com/sambitcreate/Open-Edit-Code.git
-cd Open-Edit-Code
+git clone https://github.com/sambitcreate/config-studio.git
+cd config-studio
 npm install
 ```
 
