@@ -28,6 +28,10 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     lastSaveResult: null,
     activeSection: "",
     preferences: createDefaultPreferences(),
+    shortcutOverlayOpen: false,
+    settingsOpen: false,
+    editorActions: {},
+    jsoncCommentWarningAcceptedFor: null,
     ...overrides,
   });
 }

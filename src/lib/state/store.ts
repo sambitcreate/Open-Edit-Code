@@ -14,6 +14,7 @@ import type {
   BackupRetentionPreferences,
   ConfigRootKind,
   DefaultOpenMode,
+  EditorActions,
   EditorMode,
   EditorPreferences,
   FileFormat,
@@ -43,6 +44,9 @@ interface AppStore {
   activeSection: string;
   preferences: AppPreferences;
   jsoncCommentWarningAcceptedFor: string | null;
+  shortcutOverlayOpen: boolean;
+  settingsOpen: boolean;
+  editorActions: EditorActions;
 
   setCurrentFile: (file: OpenFile) => void;
   setOriginalContent: (content: string) => void;
@@ -69,6 +73,9 @@ interface AppStore {
     updates: Partial<AppPreferences["formatDefaults"]["json"]>
   ) => void;
   setJsoncCommentWarningAcceptedFor: (content: string | null) => void;
+  setShortcutOverlayOpen: (open: boolean) => void;
+  setSettingsOpen: (open: boolean) => void;
+  setEditorActions: (actions: EditorActions) => void;
   resetFile: () => void;
 }
 
@@ -92,6 +99,9 @@ function createInitialState() {
     activeSection: "",
     preferences: createDefaultPreferences(),
     jsoncCommentWarningAcceptedFor: null,
+    shortcutOverlayOpen: false,
+    settingsOpen: false,
+    editorActions: {},
   };
 }
 
@@ -236,6 +246,12 @@ export const useAppStore = create<AppStore>()(
       setJsoncCommentWarningAcceptedFor: (content) =>
         set({ jsoncCommentWarningAcceptedFor: content }),
 
+      setShortcutOverlayOpen: (shortcutOverlayOpen) => set({ shortcutOverlayOpen }),
+
+      setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+
+      setEditorActions: (editorActions) => set({ editorActions }),
+
       resetFile: () =>
         set({
           currentFile: null,
@@ -252,6 +268,7 @@ export const useAppStore = create<AppStore>()(
           lastSaveResult: null,
           activeSection: "",
           jsoncCommentWarningAcceptedFor: null,
+          editorActions: {},
         }),
     }),
     {

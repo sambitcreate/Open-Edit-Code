@@ -664,6 +664,183 @@ button {
   min-width: 104px;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--color-overlay);
+  backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+  box-shadow: var(--shadow-elevation-3);
+  overflow: auto;
+}
+
+.shortcut-overlay-card {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.settings-card {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.modal-header,
+.modal-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.modal-title {
+  margin-top: 6px;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--color-foreground);
+}
+
+.modal-description,
+.modal-footer-copy {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+.modal-close-button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  box-shadow: var(--shadow-elevation-1);
+  cursor: pointer;
+}
+
+.modal-close-button:hover {
+  color: var(--color-foreground);
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.shortcut-section,
+.settings-row {
+  border-radius: 22px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 78%, var(--color-surface-2));
+  box-shadow: var(--shadow-elevation-1);
+}
+
+.shortcut-section {
+  padding: 16px;
+}
+
+.shortcut-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shortcut-kbd {
+  min-width: 96px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-inset-1);
+}
+
+.shortcut-copy {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+}
+
+.settings-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.settings-description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+.settings-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  flex: 0 0 auto;
+}
+
 .toolbar-button-disabled,
 .toolbar-button:disabled,
 .mode-tab-button:disabled {
@@ -1133,6 +1310,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .welcome-shortcut-text {
@@ -1433,6 +1611,10 @@ button {
 }
 
 @media (max-width: 1024px) {
+  .shortcut-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-body-with-sidebar {
     grid-template-columns: 1fr;
   }
@@ -1451,6 +1633,22 @@ button {
 @media (max-width: 720px) {
   .app-shell {
     padding: 12px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-header,
+  .modal-footer,
+  .settings-row,
+  .shortcut-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shortcut-kbd {
+    min-width: 0;
   }
 
   .toolbar-cluster,

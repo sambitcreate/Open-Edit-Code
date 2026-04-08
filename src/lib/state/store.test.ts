@@ -21,6 +21,10 @@ function resetStore() {
     lastSaveResult: null,
     activeSection: "",
     preferences: createDefaultPreferences(),
+    shortcutOverlayOpen: false,
+    settingsOpen: false,
+    editorActions: {},
+    jsoncCommentWarningAcceptedFor: null,
   });
 }
 

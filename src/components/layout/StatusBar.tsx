@@ -1,9 +1,9 @@
+import { useMemo } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
 import { supportsStructuredEditing } from "@/lib/parse";
 import { formatValidationPath, getTopLevelValidationSection } from "@/lib/validation/utils";
 import { Check, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, FileText } from "lucide-react";
-import { useMemo } from "react";
 
 export function StatusBar() {
   const {
@@ -24,17 +24,17 @@ export function StatusBar() {
     [configData, configRootKind]
   );
 
-  const errorCount = validationErrors.filter((e) => e.severity === "error").length;
-  const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
+  const errorCount = validationErrors.filter((error) => error.severity === "error").length;
+  const warningCount = validationErrors.filter((error) => error.severity === "warning").length;
   const schemaStatus = !currentFile
     ? null
     : !supportsStructuredEditing(currentFile.format)
       ? `${currentFile.format.toUpperCase()} raw only for now`
       : configRootKind === "object"
-      ? `${sections.length} top-level key${sections.length === 1 ? "" : "s"}`
-      : configRootKind === "array"
-        ? "Array root: Raw or Structure"
-        : "Fix JSON in Raw mode";
+        ? `${sections.length} top-level key${sections.length === 1 ? "" : "s"}`
+        : configRootKind === "array"
+          ? "Array root: Raw or Structure"
+          : "Fix JSON in Raw mode";
 
   const hasValidationDetails = validationErrors.length > 0;
 
@@ -105,7 +105,10 @@ export function StatusBar() {
             </span>
           </>
         ) : (
-          <span className="status-empty">No file open <kbd className="status-kbd">Cmd+O</kbd> to open</span>
+          <span className="status-empty">
+            No file open <kbd className="status-kbd">Cmd+O</kbd> to open {" · "}
+            <kbd className="status-kbd">?</kbd> for shortcuts
+          </span>
         )}
       </div>
 

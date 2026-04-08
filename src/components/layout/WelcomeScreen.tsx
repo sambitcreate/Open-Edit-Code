@@ -42,7 +42,8 @@ export function WelcomeScreen() {
         <div className="welcome-shortcut-row">
           <kbd className="status-kbd">Cmd+O</kbd>
           <kbd className="status-kbd">Cmd+Shift+O</kbd>
-          <span className="welcome-shortcut-text">keyboard shortcut</span>
+          <kbd className="status-kbd">?</kbd>
+          <span className="welcome-shortcut-text">open files, reopen recents, or view shortcuts</span>
         </div>
 
         {recentFiles.length > 0 && (

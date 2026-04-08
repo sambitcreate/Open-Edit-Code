@@ -1,20 +1,21 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "@/lib/state/store";
+import { isEditorModeAvailable } from "@/lib/editorModes";
 import { hasJsoncComments, supportsStructuredEditing } from "@/lib/parse";
 import { cn } from "@/lib/utils";
-import {
-  LayoutGrid,
-  FileJson,
-  Code2,
-  GitCompare,
-} from "lucide-react";
+import { LayoutGrid, FileJson, Code2, GitCompare } from "lucide-react";
 import type { EditorMode } from "@/types";
 
-const tabs: { mode: EditorMode; label: string; icon: React.ReactNode }[] = [
-  { mode: "form", label: "Form", icon: <LayoutGrid className="w-3.5 h-3.5" /> },
-  { mode: "structure", label: "Structure", icon: <FileJson className="w-3.5 h-3.5" /> },
-  { mode: "raw", label: "Raw", icon: <Code2 className="w-3.5 h-3.5" /> },
-  { mode: "diff", label: "Diff", icon: <GitCompare className="w-3.5 h-3.5" /> },
+const tabs: { mode: EditorMode; label: string; icon: React.ReactNode; shortcut: string }[] = [
+  { mode: "form", label: "Form", icon: <LayoutGrid className="w-3.5 h-3.5" />, shortcut: "Cmd+1" },
+  {
+    mode: "structure",
+    label: "Structure",
+    icon: <FileJson className="w-3.5 h-3.5" />,
+    shortcut: "Cmd+2",
+  },
+  { mode: "raw", label: "Raw", icon: <Code2 className="w-3.5 h-3.5" />, shortcut: "Cmd+3" },
+  { mode: "diff", label: "Diff", icon: <GitCompare className="w-3.5 h-3.5" />, shortcut: "Cmd+4" },
 ];
 
 export function ModeTabs() {
@@ -56,15 +57,22 @@ export function ModeTabs() {
       return;
     }
 
-    const disabledReason = getDisabledReason(mode);
-    if (disabledReason) {
+    const canSwitch = isEditorModeAvailable({
+      mode,
+      format: currentFile.format,
+      hasConfigData: Boolean(configData),
+      configRootKind,
+    });
+
+    if (!canSwitch) {
       return;
     }
 
-    const requiresJsoncWarning = (mode === "form" || mode === "structure")
-      && currentFile.format === "jsonc"
-      && hasJsoncComments(rawContent)
-      && jsoncCommentWarningAcceptedFor !== rawContent;
+    const requiresJsoncWarning =
+      (mode === "form" || mode === "structure") &&
+      currentFile.format === "jsonc" &&
+      hasJsoncComments(rawContent) &&
+      jsoncCommentWarningAcceptedFor !== rawContent;
 
     if (requiresJsoncWarning) {
       const shouldContinue = await confirm(
@@ -89,7 +97,7 @@ export function ModeTabs() {
 
   return (
     <div className="mode-tabs-shell">
-      {tabs.map(({ mode, label, icon }) => {
+      {tabs.map(({ mode, label, icon, shortcut }) => {
         const disabledReason = getDisabledReason(mode);
         const disabled = disabledReason !== null;
 
@@ -100,13 +108,11 @@ export function ModeTabs() {
               void handleModeChange(mode);
             }}
             disabled={disabled}
-            title={disabledReason ?? undefined}
+            title={disabledReason ?? `${label} (${shortcut})`}
             className={cn(
               "mode-tab-button",
               disabled && "mode-tab-button-disabled",
-              editorMode === mode
-                ? "mode-tab-button-active"
-                : "mode-tab-button-idle"
+              editorMode === mode ? "mode-tab-button-active" : "mode-tab-button-idle"
             )}
           >
             {icon}

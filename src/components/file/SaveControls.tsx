@@ -35,25 +35,26 @@ export function SaveControls() {
   async function handleSave() {
     if (!currentFile) return;
 
-    const contentToSave = editorMode === "raw" || !configData
-      ? rawContent
-      : serializeJson(
-          configData,
-          configRootKind ?? "object",
-          getJsonFormatPreferences(preferences, currentFile.format)
-        );
+    const contentToSave =
+      editorMode === "raw" || !configData
+        ? rawContent
+        : serializeJson(
+            configData,
+            configRootKind ?? "object",
+            getJsonFormatPreferences(preferences, currentFile.format)
+          );
 
     if (currentFile.format === "json") {
       const validation = validateBasicJson(contentToSave);
 
       if (!validation.valid) {
         setValidationErrors(
-          validation.errors.map((e) => ({
-            path: e.path,
-            message: e.message,
+          validation.errors.map((error) => ({
+            path: error.path,
+            message: error.message,
             severity: "error" as const,
-            line: e.line,
-            column: e.column,
+            line: error.line,
+            column: error.column,
           }))
         );
         return;
@@ -63,9 +64,7 @@ export function SaveControls() {
     if (currentFile.format === "jsonc") {
       const parsed = parseContent(contentToSave, currentFile.format);
       if (parsed.error) {
-        setValidationErrors([
-          createValidationError("/", parsed.error, "error", contentToSave),
-        ]);
+        setValidationErrors([createValidationError("/", parsed.error, "error", contentToSave)]);
         return;
       }
     }
@@ -90,19 +89,17 @@ export function SaveControls() {
         setConfigRootKind(parsed.rootKind);
         setDirty(false);
         if (parsed.error) {
-          setValidationErrors([
-            createValidationError("/", parsed.error, "error", contentToSave),
-          ]);
+          setValidationErrors([createValidationError("/", parsed.error, "error", contentToSave)]);
         } else {
           setValidationErrors([]);
         }
         await refreshBackupsForCurrentFile();
       }
-    } catch (e) {
+    } catch (error) {
       setLastSaveResult({
         success: false,
         backup_path: null,
-        error: String(e),
+        error: String(error),
       });
     } finally {
       setIsSaving(false);
@@ -146,28 +143,25 @@ export function SaveControls() {
     <div className="toolbar-cluster toolbar-cluster-end">
       <BackupsMenu />
       <button
-        onClick={handleRevert}
+        onClick={() => {
+          void handleRevert();
+        }}
         disabled={!dirty}
-        className={cn(
-          "toolbar-button toolbar-button-secondary",
-          dirty
-            ? ""
-            : "toolbar-button-disabled"
-        )}
-        title="Revert changes"
+        className={cn("toolbar-button toolbar-button-secondary", dirty ? "" : "toolbar-button-disabled")}
+        title="Revert changes (Cmd+R)"
       >
         <RotateCcw className="w-4 h-4" />
         Revert
       </button>
       <button
         id="save-btn"
-        onClick={handleSave}
+        onClick={() => {
+          void handleSave();
+        }}
         disabled={!dirty || isSaving}
         className={cn(
           "toolbar-button toolbar-button-primary",
-          dirty && !isSaving
-            ? ""
-            : "toolbar-button-disabled"
+          dirty && !isSaving ? "" : "toolbar-button-disabled"
         )}
         title="Save (Cmd+S)"
       >

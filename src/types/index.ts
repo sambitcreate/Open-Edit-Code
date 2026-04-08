@@ -68,6 +68,12 @@ export interface AppPreferences {
   };
 }
 
+export interface EditorActions {
+  find?: () => void;
+  undo?: () => void;
+  redo?: () => void;
+}
+
 export interface AppState {
   currentFile: OpenFile | null;
   originalContent: string;
@@ -86,4 +92,7 @@ export interface AppState {
   lastSaveResult: SaveResult | null;
   preferences: AppPreferences;
   jsoncCommentWarningAcceptedFor: string | null;
+  shortcutOverlayOpen: boolean;
+  settingsOpen: boolean;
+  editorActions: EditorActions;
 }
