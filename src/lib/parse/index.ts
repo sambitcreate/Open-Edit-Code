@@ -1,5 +1,13 @@
 import type { FileFormat } from "@/types";
 
+export function supportsStructuredEditing(format: FileFormat): boolean {
+  return format === "json" || format === "jsonc";
+}
+
+export function supportsVisualEditing(format: FileFormat): boolean {
+  return format === "json";
+}
+
 export function detectFormat(filePath: string): FileFormat {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".jsonc")) return "jsonc";
@@ -51,7 +59,10 @@ export function parseContent(content: string, format: FileFormat): {
     }
     case "yaml":
     case "toml":
-      return { data: null, error: `${format.toUpperCase()} support coming soon` };
+      return {
+        data: null,
+        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is still available.`,
+      };
     default:
       return parseJson(content);
   }
