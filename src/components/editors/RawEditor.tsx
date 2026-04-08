@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback } from "react";
+import { lazy, Suspense, useCallback, useEffect } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { parseContent, supportsStructuredEditing } from "@/lib/parse";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
@@ -16,6 +16,8 @@ export function RawEditor() {
     originalContent,
     currentFile,
     setValidationErrors,
+    setEditorActions,
+    editorPreferences,
   } = useAppStore();
 
   const editorLanguage = currentFile?.format === "jsonc"
@@ -60,6 +62,12 @@ export function RawEditor() {
     ]
   );
 
+  useEffect(() => {
+    return () => {
+      setEditorActions({});
+    };
+  }, [setEditorActions]);
+
   if (!currentFile) {
     return (
       <div className="editor-empty-state">
@@ -87,12 +95,28 @@ export function RawEditor() {
             defaultLanguage={editorLanguage}
             value={rawContent}
             onChange={handleChange}
+            onMount={(editor) => {
+              setEditorActions({
+                find: () => {
+                  editor.focus();
+                  void editor.getAction("actions.find")?.run();
+                },
+                undo: () => {
+                  editor.focus();
+                  editor.trigger("keyboard", "undo", null);
+                },
+                redo: () => {
+                  editor.focus();
+                  editor.trigger("keyboard", "redo", null);
+                },
+              });
+            }}
             theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               minimap: { enabled: false },
               fontSize: 13,
-              lineNumbers: "on",
-              wordWrap: "on",
+              lineNumbers: editorPreferences.rawLineNumbers ? "on" : "off",
+              wordWrap: editorPreferences.rawWordWrap ? "on" : "off",
               scrollBeyondLastLine: false,
               automaticLayout: true,
               tabSize: 2,

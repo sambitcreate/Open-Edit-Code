@@ -29,6 +29,18 @@ export interface ValidationError {
 
 export type EditorMode = "form" | "structure" | "raw" | "diff";
 
+export interface EditorPreferences {
+  rawWordWrap: boolean;
+  rawLineNumbers: boolean;
+  diffSideBySide: boolean;
+}
+
+export interface EditorActions {
+  find?: () => void;
+  undo?: () => void;
+  redo?: () => void;
+}
+
 export interface AppState {
   currentFile: OpenFile | null;
   originalContent: string;
@@ -41,4 +53,7 @@ export interface AppState {
   recentFiles: string[];
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
+  shortcutOverlayOpen: boolean;
+  settingsOpen: boolean;
+  editorPreferences: EditorPreferences;
 }

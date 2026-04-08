@@ -62,7 +62,11 @@ export function StatusBar() {
           </span>
         </>
       ) : (
-        <span className="status-empty">No file open <kbd className="status-kbd">Cmd+O</kbd> to open</span>
+        <span className="status-empty">
+          No file open <kbd className="status-kbd">Cmd+O</kbd> to open
+          {" · "}
+          <kbd className="status-kbd">?</kbd> for shortcuts
+        </span>
       )}
     </div>
   );

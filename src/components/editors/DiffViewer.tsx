@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
 
@@ -8,13 +8,25 @@ const MonacoDiffEditor = lazy(() =>
 
 export function DiffViewer() {
   const theme = useSystemTheme();
-  const { originalContent, rawContent, currentFile } = useAppStore();
+  const {
+    originalContent,
+    rawContent,
+    currentFile,
+    editorPreferences,
+    setEditorActions,
+  } = useAppStore();
 
   const editorLanguage = currentFile?.format === "jsonc"
     ? "json"
     : currentFile?.format === "toml"
       ? "ini"
       : currentFile?.format ?? "json";
+
+  useEffect(() => {
+    return () => {
+      setEditorActions({});
+    };
+  }, [setEditorActions]);
 
   if (!originalContent && !rawContent) {
     return (
@@ -43,15 +55,24 @@ export function DiffViewer() {
             original={originalContent}
             modified={rawContent}
             language={editorLanguage}
+            onMount={(editor) => {
+              setEditorActions({
+                find: () => {
+                  const modifiedEditor = editor.getModifiedEditor();
+                  modifiedEditor.focus();
+                  void modifiedEditor.getAction("actions.find")?.run();
+                },
+              });
+            }}
             theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               readOnly: true,
               minimap: { enabled: false },
               fontSize: 13,
-              lineNumbers: "on",
+              lineNumbers: editorPreferences.rawLineNumbers ? "on" : "off",
               scrollBeyondLastLine: false,
               automaticLayout: true,
-              renderSideBySide: true,
+              renderSideBySide: editorPreferences.diffSideBySide,
             }}
           />
         </div>

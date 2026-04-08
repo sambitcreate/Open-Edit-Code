@@ -1,137 +1,21 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/lib/state/store";
-import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
-import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
-import { validateBasicJson } from "@/lib/validation";
-import type { SaveResult } from "@/types";
+import { revertCurrentFile, saveCurrentFile } from "@/lib/fileActions";
 import { Save, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SaveControls() {
   const {
     currentFile,
-    configData,
-    originalContent,
-    rawContent,
-    configRootKind,
     dirty,
     isSaving,
-    editorMode,
-    setIsSaving,
-    setLastSaveResult,
-    setDirty,
-    setOriginalContent,
-    setRawContent,
-    setConfigData,
-    setConfigRootKind,
-    setValidationErrors,
   } = useAppStore();
-
-  async function handleSave() {
-    if (!currentFile) return;
-
-    const contentToSave = editorMode === "raw" || !configData
-      ? rawContent
-      : serializeJson(configData, configRootKind ?? "object");
-
-    if (currentFile.format === "json") {
-      const validation = validateBasicJson(contentToSave);
-
-      if (!validation.valid) {
-        setValidationErrors(
-          validation.errors.map((e) => ({
-            path: e.path,
-            message: e.message,
-            severity: "error" as const,
-          }))
-        );
-        return;
-      }
-    }
-
-    if (currentFile.format === "jsonc") {
-      const parsed = parseContent(contentToSave, currentFile.format);
-      if (parsed.error) {
-        setValidationErrors([
-          { path: "/", message: parsed.error, severity: "error" },
-        ]);
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    try {
-      const result = await invoke<SaveResult>("save_file", {
-        path: currentFile.path,
-        content: contentToSave,
-      });
-
-      setLastSaveResult(result);
-      if (result.success) {
-        const parsed = supportsStructuredEditing(currentFile.format)
-          ? parseContent(contentToSave, currentFile.format)
-          : { data: null, error: null, rootKind: null };
-
-        setOriginalContent(contentToSave);
-        setRawContent(contentToSave);
-        setConfigData(parsed.data);
-        setConfigRootKind(parsed.rootKind);
-        setDirty(false);
-        if (parsed.error) {
-          setValidationErrors([
-            { path: "/", message: parsed.error, severity: "error" },
-          ]);
-        } else {
-          setValidationErrors([]);
-        }
-      }
-    } catch (e) {
-      setLastSaveResult({
-        success: false,
-        backup_path: null,
-        error: String(e),
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function handleRevert() {
-    if (!currentFile || !dirty) return;
-
-    const shouldDiscard = await confirmDiscardUnsavedChanges(
-      "Discard your unsaved changes and restore the last saved version?"
-    );
-
-    if (!shouldDiscard) {
-      return;
-    }
-
-    const parsed = parseContent(originalContent, currentFile.format);
-
-    setRawContent(originalContent);
-    setConfigData(parsed.data);
-    setConfigRootKind(parsed.rootKind);
-    if (parsed.error) {
-      setValidationErrors([
-        {
-          path: "/",
-          message: parsed.error,
-          severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
-        },
-      ]);
-    } else {
-      setValidationErrors([]);
-    }
-    setDirty(false);
-  }
 
   if (!currentFile) return null;
 
   return (
-    <div className="toolbar-cluster toolbar-cluster-end">
+    <div className="toolbar-cluster">
       <button
-        onClick={handleRevert}
+        onClick={() => { void revertCurrentFile(); }}
         disabled={!dirty}
         className={cn(
           "toolbar-button toolbar-button-secondary",
@@ -139,14 +23,14 @@ export function SaveControls() {
             ? ""
             : "toolbar-button-disabled"
         )}
-        title="Revert changes"
+        title="Revert changes (Cmd+R)"
       >
         <RotateCcw className="w-4 h-4" />
         Revert
       </button>
       <button
         id="save-btn"
-        onClick={handleSave}
+        onClick={() => { void saveCurrentFile(); }}
         disabled={!dirty || isSaving}
         className={cn(
           "toolbar-button toolbar-button-primary",

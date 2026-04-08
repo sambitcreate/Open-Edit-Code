@@ -38,6 +38,14 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
+    shortcutOverlayOpen: false,
+    settingsOpen: false,
+    editorPreferences: {
+      rawWordWrap: true,
+      rawLineNumbers: true,
+      diffSideBySide: true,
+    },
+    editorActions: {},
     ...overrides,
   });
 }
