@@ -59,6 +59,76 @@
   --color-tone-blue-border: #c6ddf8;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Core surfaces */
+    --color-background: #1a1815;
+    --color-background-2: #17150f;
+    --color-surface: #221f1b;
+    --color-surface-2: #2a2620;
+    --color-foreground: #f2ece1;
+    --color-muted-foreground: #a59b8b;
+    --color-border: #332e27;
+    --color-input: #221f1b;
+    --color-overlay: rgba(0, 0, 0, 0.55);
+
+    /* Legacy aliases */
+    --color-card: #221f1b;
+    --color-card-foreground: #f2ece1;
+    --color-popover: #221f1b;
+    --color-popover-foreground: #f2ece1;
+    --color-secondary: #2a2620;
+    --color-secondary-foreground: #f2ece1;
+    --color-muted: #2a2620;
+    --color-accent: #2a2620;
+    --color-accent-foreground: #f2ece1;
+    --color-sidebar: #221f1b;
+    --color-sidebar-foreground: #c7bdac;
+    --color-sidebar-accent: #2a2620;
+
+    /* Primary + semantic (lightened for AA contrast on dark surfaces) */
+    --color-primary: #4ba9d6;
+    --color-primary-foreground: #0d1215;
+    --color-ring: #4ba9d6;
+    --color-danger: #ff6b62;
+    --color-warning: #e5a43d;
+    --color-success: #52c476;
+
+    /* Tonal cards — dusty peach */
+    --color-tone-peach-bg: #2f251a;
+    --color-tone-peach-bg-2: #352a1e;
+    --color-tone-peach-fg: #e8b781;
+    --color-tone-peach-border: #3d2e1f;
+
+    /* Tonal cards — deep jade */
+    --color-tone-mint-bg: #1a2a1f;
+    --color-tone-mint-bg-2: #1f3124;
+    --color-tone-mint-fg: #8fd9a3;
+    --color-tone-mint-border: #2a3d30;
+
+    /* Tonal cards — navy */
+    --color-tone-blue-bg: #1a2333;
+    --color-tone-blue-bg-2: #1f2a3d;
+    --color-tone-blue-fg: #92b8e8;
+    --color-tone-blue-border: #2a3548;
+
+    /* Elevation shadow scale — heavier in dark mode for parity */
+    --shadow-elevation-1: 0 3px 6px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-elevation-2: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --shadow-elevation-3: 0 14px 36px rgba(0, 0, 0, 0.55);
+    --shadow-inset-1: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Collapse the html/body gradient to a flat dark background */
+  html,
+  body,
+  #root {
+    background: var(--color-background);
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
