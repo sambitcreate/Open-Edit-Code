@@ -11,7 +11,7 @@ export function supportsStructuredEditing(format: FileFormat): boolean {
 }
 
 export function supportsVisualEditing(format: FileFormat): boolean {
-  return format === "json";
+  return supportsStructuredEditing(format);
 }
 
 export function detectFormat(filePath: string): FileFormat {
@@ -74,12 +74,13 @@ export function serializeJson(
   return JSON.stringify(normalized, null, indentSize);
 }
 
-export function stripJsoncComments(content: string): string {
+function analyzeJsoncContent(content: string): { stripped: string; hasComments: boolean } {
   let result = "";
   let inString = false;
   let escaped = false;
   let inLineComment = false;
   let inBlockComment = false;
+  let hasComments = false;
 
   for (let i = 0; i < content.length; i++) {
     const char = content[i];
@@ -133,12 +134,14 @@ export function stripJsoncComments(content: string): string {
     }
 
     if (char === "/" && next === "/") {
+      hasComments = true;
       inLineComment = true;
       i++;
       continue;
     }
 
     if (char === "/" && next === "*") {
+      hasComments = true;
       inBlockComment = true;
       i++;
       continue;
@@ -147,7 +150,15 @@ export function stripJsoncComments(content: string): string {
     result += char;
   }
 
-  return result.trim();
+  return { stripped: result.trim(), hasComments };
+}
+
+export function stripJsoncComments(content: string): string {
+  return analyzeJsoncContent(content).stripped;
+}
+
+export function hasJsoncComments(content: string): boolean {
+  return analyzeJsoncContent(content).hasComments;
 }
 
 export function parseContent(content: string, format: FileFormat): ParseResult {
@@ -162,7 +173,7 @@ export function parseContent(content: string, format: FileFormat): ParseResult {
     case "toml":
       return {
         data: null,
-        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is still available.`,
+        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is safest for now, and richer support is planned.`,
         rootKind: null,
       };
     default:

@@ -1,6 +1,6 @@
 import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
-import { supportsVisualEditing } from "@/lib/parse";
+import { supportsStructuredEditing } from "@/lib/parse";
 import { Check, AlertCircle, AlertTriangle, FileText } from "lucide-react";
 import { useMemo } from "react";
 
@@ -15,11 +15,13 @@ export function StatusBar() {
   const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
   const schemaStatus = !currentFile
     ? null
-    : supportsVisualEditing(currentFile.format) && configRootKind === "object"
+    : !supportsStructuredEditing(currentFile.format)
+      ? `${currentFile.format.toUpperCase()} raw only for now`
+      : configRootKind === "object"
       ? `${sections.length} top-level key${sections.length === 1 ? "" : "s"}`
-      : supportsVisualEditing(currentFile.format) && configRootKind === "array"
-        ? "Array root"
-        : "Raw mode only";
+      : configRootKind === "array"
+        ? "Array root: Raw or Structure"
+        : "Fix JSON in Raw mode";
 
   return (
     <div className="statusbar-shell">

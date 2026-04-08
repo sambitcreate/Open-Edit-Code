@@ -39,6 +39,7 @@ interface AppStore {
   lastSaveResult: SaveResult | null;
   activeSection: string;
   preferences: AppPreferences;
+  jsoncCommentWarningAcceptedFor: string | null;
 
   setCurrentFile: (file: OpenFile) => void;
   setOriginalContent: (content: string) => void;
@@ -62,6 +63,7 @@ interface AppStore {
     format: Extract<FileFormat, "json" | "jsonc">,
     updates: Partial<AppPreferences["formatDefaults"]["json"]>
   ) => void;
+  setJsoncCommentWarningAcceptedFor: (content: string | null) => void;
   resetFile: () => void;
 }
 
@@ -82,6 +84,7 @@ function createInitialState() {
     lastSaveResult: null,
     activeSection: "",
     preferences: createDefaultPreferences(),
+    jsoncCommentWarningAcceptedFor: null,
   };
 }
 
@@ -125,7 +128,14 @@ export const useAppStore = create<AppStore>()(
 
       setOriginalContent: (content) => set({ originalContent: content }),
 
-      setRawContent: (content) => set({ rawContent: content }),
+      setRawContent: (content) =>
+        set((state) => ({
+          rawContent: content,
+          jsoncCommentWarningAcceptedFor:
+            state.jsoncCommentWarningAcceptedFor === content
+              ? state.jsoncCommentWarningAcceptedFor
+              : null,
+        })),
 
       setConfigData: (data) => set({ configData: data }),
 
@@ -202,6 +212,9 @@ export const useAppStore = create<AppStore>()(
           },
         })),
 
+      setJsoncCommentWarningAcceptedFor: (content) =>
+        set({ jsoncCommentWarningAcceptedFor: content }),
+
       resetFile: () =>
         set({
           currentFile: null,
@@ -215,6 +228,7 @@ export const useAppStore = create<AppStore>()(
           isLoadingBackups: false,
           lastSaveResult: null,
           activeSection: "",
+          jsoncCommentWarningAcceptedFor: null,
         }),
     }),
     {

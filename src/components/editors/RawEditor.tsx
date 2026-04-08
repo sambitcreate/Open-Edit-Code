@@ -15,6 +15,7 @@ export function RawEditor() {
     setDirty,
     originalContent,
     currentFile,
+    configRootKind,
     setValidationErrors,
     preferences,
   } = useAppStore();
@@ -71,8 +72,31 @@ export function RawEditor() {
     );
   }
 
+  const rawModeNotice = currentFile.format === "yaml" || currentFile.format === "toml"
+    ? {
+        eyebrow: `${currentFile.format.toUpperCase()} format`,
+        title: `${currentFile.format.toUpperCase()} files stay in Raw mode for now`,
+        description:
+          "Structured editing is not available yet for this format. Raw editing is fully supported today, and broader format support is planned.",
+      }
+    : configRootKind === "array"
+      ? {
+          eyebrow: "Array root",
+          title: "This file's root is an array",
+          description:
+            "Form mode only works with object-based JSON files. Use Raw or Structure view to inspect and edit array items.",
+        }
+      : null;
+
   return (
-    <div className="editor-panel-shell">
+    <div className={rawModeNotice ? "editor-panel-shell editor-panel-shell-with-note" : "editor-panel-shell"}>
+      {rawModeNotice && (
+        <div className="editor-context-card">
+          <span className="editor-context-eyebrow">{rawModeNotice.eyebrow}</span>
+          <h2 className="editor-context-title">{rawModeNotice.title}</h2>
+          <p className="editor-context-description">{rawModeNotice.description}</p>
+        </div>
+      )}
       <Suspense
         fallback={
           <div className="editor-empty-state">

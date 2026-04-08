@@ -4,7 +4,17 @@ import { serializeJson } from "@/lib/parse";
 import { useAppStore } from "@/lib/state/store";
 
 export function StructureEditor() {
-  const { configData, setConfigData, setRawContent, setDirty, originalContent, currentFile, preferences } = useAppStore();
+  const {
+    configData,
+    configRootKind,
+    setConfigData,
+    setConfigRootKind,
+    setRawContent,
+    setDirty,
+    originalContent,
+    currentFile,
+    preferences,
+  } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<unknown>(null);
   const originalContentRef = useRef(originalContent);
@@ -15,23 +25,39 @@ export function StructureEditor() {
 
   const handleChange = useCallback(
     (updatedContent: { json?: unknown; text?: string }) => {
-      if (updatedContent.json !== undefined && updatedContent.json !== null) {
-        const data = updatedContent.json as Record<string, unknown>;
+      if (updatedContent.json !== undefined) {
+        const nextJson = updatedContent.json;
+        const nextRootKind = Array.isArray(nextJson)
+          ? "array"
+          : typeof nextJson === "object" && nextJson !== null
+            ? "object"
+            : null;
+        const data = nextRootKind === "array"
+          ? { _root: nextJson } as Record<string, unknown>
+          : nextRootKind === "object"
+            ? nextJson as Record<string, unknown>
+            : null;
+
         setConfigData(data);
         const serialized = serializeJson(
-          data,
-          "object",
+          data ?? {},
+          nextRootKind ?? "object",
           getJsonFormatPreferences(preferences, currentFile?.format ?? "json")
         );
+        setConfigRootKind(nextRootKind);
         setRawContent(serialized);
         setDirty(serialized !== originalContentRef.current);
       }
     },
-    [currentFile?.format, preferences, setConfigData, setDirty, setRawContent]
+    [currentFile?.format, preferences, setConfigData, setConfigRootKind, setDirty, setRawContent]
   );
 
+  const structureContent = configRootKind === "array" ? configData?._root : configData;
+
   useEffect(() => {
-    if (!containerRef.current || !configData || !currentFile) return;
+    if (!containerRef.current || structureContent === undefined || structureContent === null || !currentFile) {
+      return;
+    }
 
     let mounted = true;
 
@@ -50,7 +76,7 @@ export function StructureEditor() {
         target: containerRef.current,
         props: {
           content: {
-            json: configData,
+            json: structureContent,
           },
           onChange: handleChange,
         },
@@ -66,20 +92,20 @@ export function StructureEditor() {
         editorRef.current = null;
       }
     };
-  }, [currentFile]);
+  }, [currentFile, handleChange]);
 
   useEffect(() => {
-    if (editorRef.current && configData) {
+    if (editorRef.current && structureContent !== undefined && structureContent !== null) {
       const editor = editorRef.current as { set: (props: { content: { json: unknown } }) => void };
       try {
         editor.set({
-          content: { json: configData },
+          content: { json: structureContent },
         });
       } catch {
         // editor may not be ready
       }
     }
-  }, [configData]);
+  }, [structureContent]);
 
   if (!currentFile) {
     return (

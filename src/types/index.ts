@@ -76,4 +76,5 @@ export interface AppState {
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
   preferences: AppPreferences;
+  jsoncCommentWarningAcceptedFor: string | null;
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectFormat,
   getFileName,
+  hasJsoncComments,
   parseContent,
   parseJson,
   serializeJson,
@@ -24,7 +25,7 @@ describe("parse helpers", () => {
     expect(supportsStructuredEditing("jsonc")).toBe(true);
     expect(supportsStructuredEditing("yaml")).toBe(false);
     expect(supportsVisualEditing("json")).toBe(true);
-    expect(supportsVisualEditing("jsonc")).toBe(false);
+    expect(supportsVisualEditing("jsonc")).toBe(true);
   });
 
   it("parses object roots and wraps array roots", () => {
@@ -94,16 +95,30 @@ describe("parse helpers", () => {
     });
   });
 
+  it("detects whether a JSONC document contains comments", () => {
+    expect(hasJsoncComments('{ "name": "plain json" }')).toBe(false);
+    expect(
+      hasJsoncComments(
+        [
+          "{",
+          "  // comment",
+          '  "url": "https://example.com"',
+          "}",
+        ].join("\n")
+      )
+    ).toBe(true);
+  });
+
   it("returns raw-mode guidance for unsupported structured formats", () => {
     expect(parseContent("name: value", "yaml")).toEqual({
       data: null,
-      error: "YAML structured editing is not available yet. Raw mode is still available.",
+      error: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
       rootKind: null,
     });
 
     expect(parseContent("key = 'value'", "toml")).toEqual({
       data: null,
-      error: "TOML structured editing is not available yet. Raw mode is still available.",
+      error: "TOML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
       rootKind: null,
     });
   });
