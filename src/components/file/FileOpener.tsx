@@ -2,13 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import type { OpenFile } from "@/types";
 import { useAppStore } from "@/lib/state/store";
-import { detectFormat, getFileName, parseContent } from "@/lib/parse";
+import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
 import { FolderOpen } from "lucide-react";
 
 export function FileOpener() {
   const {
     setCurrentFile,
     setOriginalContent,
+    setRawContent,
     setConfigData,
     setDirty,
     setEditorMode,
@@ -39,7 +40,11 @@ export function FileOpener() {
 
       if (parsed.error) {
         setValidationErrors([
-          { path: "/", message: parsed.error, severity: "error" },
+          {
+            path: "/",
+            message: parsed.error,
+            severity: supportsStructuredEditing(format) ? "error" : "warning",
+          },
         ]);
         setConfigData(null);
       } else {
@@ -54,8 +59,9 @@ export function FileOpener() {
         fileName: getFileName(filePath),
       });
       setOriginalContent(result.content);
+      setRawContent(result.content);
       setDirty(false);
-      setEditorMode(parsed.data ? "form" : "raw");
+      setEditorMode(parsed.data && supportsVisualEditing(format) ? "form" : "raw");
     } catch (e) {
       setValidationErrors([
         { path: "/", message: String(e), severity: "error" },
@@ -64,22 +70,23 @@ export function FileOpener() {
   }
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="toolbar-cluster toolbar-cluster-start">
       <button
+        id="open-file-btn"
         onClick={handleOpenFile}
-        className="neu-raised flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground cursor-pointer"
+        className="toolbar-button toolbar-button-primary"
         title="Open file (Cmd+O)"
       >
-        <FolderOpen className="w-4 h-4 text-primary" />
-        Open
+        <FolderOpen className="w-4 h-4" />
+        <span>Open File</span>
       </button>
       {currentFile && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-foreground font-medium max-w-[200px] truncate" title={currentFile.path}>
+        <div className="file-chip" title={currentFile.path}>
+          <span className="file-chip-name">
             {currentFile.fileName}
           </span>
           {dirty && (
-            <span className="w-2 h-2 rounded-full bg-warning" title="Unsaved changes" />
+            <span className="file-chip-dot" title="Unsaved changes" />
           )}
         </div>
       )}
