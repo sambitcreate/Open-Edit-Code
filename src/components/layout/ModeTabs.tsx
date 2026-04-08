@@ -1,4 +1,5 @@
 import { useAppStore } from "@/lib/state/store";
+import { supportsVisualEditing } from "@/lib/parse";
 import { cn } from "@/lib/utils";
 import {
   LayoutGrid,
@@ -16,27 +17,35 @@ const tabs: { mode: EditorMode; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function ModeTabs() {
-  const { editorMode, setEditorMode, currentFile } = useAppStore();
+  const { editorMode, setEditorMode, currentFile, configData } = useAppStore();
 
   if (!currentFile) return null;
 
   return (
-    <div className="flex items-center bg-muted rounded-lg p-0.5">
-      {tabs.map(({ mode, label, icon }) => (
-        <button
-          key={mode}
-          onClick={() => setEditorMode(mode)}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-            editorMode === mode
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {icon}
-          {label}
-        </button>
-      ))}
+    <div className="mode-tabs-shell">
+      {tabs.map(({ mode, label, icon }) => {
+        const disabled =
+          (mode === "form" || mode === "structure") &&
+          (!configData || !supportsVisualEditing(currentFile.format));
+
+        return (
+          <button
+            key={mode}
+            onClick={() => setEditorMode(mode)}
+            disabled={disabled}
+            className={cn(
+              "mode-tab-button",
+              disabled && "mode-tab-button-disabled",
+              editorMode === mode
+                ? "mode-tab-button-active"
+                : "mode-tab-button-idle"
+            )}
+          >
+            {icon}
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
