@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import App from "./App";
 import { useAppStore } from "@/lib/state/store";
 
@@ -65,17 +66,18 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     dirty: false,
     editorMode: "form",
     validationErrors: [],
+    validationPanelOpen: false,
+    validationFocusRequest: null,
     recentFiles: [],
+    backups: [],
+    isLoadingBackups: false,
     isSaving: false,
     lastSaveResult: null,
     activeSection: "name",
+    preferences: createDefaultPreferences(),
+    jsoncCommentWarningAcceptedFor: null,
     shortcutOverlayOpen: false,
     settingsOpen: false,
-    editorPreferences: {
-      rawWordWrap: true,
-      rawLineNumbers: true,
-      diffSideBySide: true,
-    },
     editorActions: {},
     ...overrides,
   });
