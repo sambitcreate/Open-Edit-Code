@@ -1,29 +1,56 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f5f5f7;
-  --color-foreground: #1c1c1e;
-  --color-card: #ffffff;
-  --color-card-foreground: #1c1c1e;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #1c1c1e;
-  --color-primary: #0077a8;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #ececf1;
-  --color-secondary-foreground: #1c1c1e;
-  --color-muted: #ececf1;
-  --color-muted-foreground: #6e6e73;
-  --color-accent: #f6f6f8;
-  --color-accent-foreground: #1c1c1e;
-  --color-border: #e5e5ea;
+  /* Core surfaces */
+  --color-background: #f9f6f1;
+  --color-background-2: #f2ede4;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4efe7;
+  --color-foreground: #1c1917;
+  --color-muted-foreground: #6b645b;
+  --color-border: #e8e2d6;
   --color-input: #ffffff;
-  --color-ring: #0077a8;
+  --color-overlay: rgba(28, 25, 23, 0.45);
+
+  /* Legacy aliases (kept to avoid breaking Tailwind utilities elsewhere) */
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1917;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1c1917;
+  --color-secondary: #f4efe7;
+  --color-secondary-foreground: #1c1917;
+  --color-muted: #f4efe7;
+  --color-accent: #f4efe7;
+  --color-accent-foreground: #1c1917;
   --color-sidebar: #ffffff;
   --color-sidebar-foreground: #4b4b52;
-  --color-sidebar-accent: #f7f7fa;
+  --color-sidebar-accent: #f4efe7;
+
+  /* Primary + semantic */
+  --color-primary: #0077a8;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #0077a8;
   --color-danger: #cc2d24;
   --color-warning: #b36800;
   --color-success: #1a7a30;
+
+  /* Tonal cards — peach */
+  --color-tone-peach-bg: #fff3e3;
+  --color-tone-peach-bg-2: #fde9cf;
+  --color-tone-peach-fg: #8a5520;
+  --color-tone-peach-border: #f1dcbc;
+
+  /* Tonal cards — mint */
+  --color-tone-mint-bg: #d8f6df;
+  --color-tone-mint-bg-2: #c7efd1;
+  --color-tone-mint-fg: #1a7a34;
+  --color-tone-mint-border: #b7e6c1;
+
+  /* Tonal cards — blue */
+  --color-tone-blue-bg: #e4f1ff;
+  --color-tone-blue-bg-2: #d2e7ff;
+  --color-tone-blue-fg: #1a56b8;
+  --color-tone-blue-border: #c6ddf8;
 }
 
 * {
