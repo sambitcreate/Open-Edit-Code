@@ -334,7 +334,7 @@ button {
 .sidebar-item-mint,
 .task-item-mint {
   background: linear-gradient(180deg, #d8f6df 0%, #c7efd1 100%);
-  color: #34a853;
+  color: #1a7a34;
 }
 
 .sidebar-item-blue,
@@ -532,7 +532,7 @@ button {
 
 .task-icon-mint,
 .task-circle-mint {
-  color: #34a853;
+  color: #1a7a34;
 }
 
 .task-icon-blue,
