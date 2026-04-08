@@ -1,50 +1,135 @@
-# Open Edit Code
+# Config Studio
 
-Open Edit Code is a desktop configuration editor built with Tauri, React, and TypeScript. It opens local config files, parses them on-device, and lets you inspect or edit content through multiple views aimed at structured configuration work.
+A macOS desktop app for editing local config files without touching raw JSON.
+Open a file, edit it through structured forms or a tree view, validate before saving, and restore from backups — all on-device.
 
-## Current Capabilities
+> Built with Tauri 2, React 19, and TypeScript.
 
-- Open local `json`, `jsonc`, `yaml`, `yml`, and `toml` files through the native file picker
-- Parse JSON and JSONC content into editable in-memory state
-- Switch between form, structure, raw, and diff-oriented editor modes
-- Save changes back to disk through the Tauri backend
-- Create timestamped backups before overwriting an existing file
-- Restore from saved backup files through the Rust command layer
+---
 
-## Stack
+## Download
 
-- Tauri 2 for the desktop shell and native file operations
-- React 19 + TypeScript for the UI
-- Zustand for app state
-- JSON Forms + Material renderers for schema-driven editing
-- Vite for local development and builds
+Grab the latest `.dmg` from [**Releases**](https://github.com/sambitcreate/Open-Edit-Code/releases).
 
-## Project Structure
+Mount it, drag **Config Studio** to Applications, then right-click → **Open** the first time to clear Gatekeeper (the app is not yet notarized).
 
-```text
-src/          React UI, editor components, parsing, validation, and state
-src-tauri/    Rust commands, Tauri config, and desktop packaging assets
-public/       Static frontend assets
+---
+
+## What it does
+
+| Feature | Details |
+|---|---|
+| **File formats** | JSON, JSONC, YAML, TOML (open/detect all; full parse/edit on JSON + JSONC) |
+| **Form mode** | Schema-driven form UI — edit config like app preferences |
+| **Structure mode** | JSON tree/table editor for nested data and bulk edits |
+| **Raw mode** | Monaco-powered source editor with syntax highlighting |
+| **Diff mode** | Side-by-side view of original vs. current changes |
+| **Safe save** | Validates → backs up original → atomic write |
+| **Backup & restore** | Timestamped backups per file; restore from the sidebar |
+| **Recent files** | Quick reopen from the welcome screen |
+| **Settings** | Font size, tab size, word wrap, line numbers, backup retention, default open mode, indent style, theme |
+
+---
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+O` | Open a config file |
+| `Cmd+S` | Save the current file |
+| `Cmd+R` | Revert to last saved version |
+| `Cmd+1` | Switch to Form mode |
+| `Cmd+2` | Switch to Structure mode |
+| `Cmd+3` | Switch to Raw mode |
+| `Cmd+4` | Switch to Diff mode |
+| `Cmd+F` | Find (in Raw and Diff editors) |
+| `Cmd+Z` | Undo |
+| `Cmd+Shift+Z` | Redo |
+| `Cmd+,` | Open Settings |
+| `?` | Open shortcut reference |
+| `Esc` | Close dialogs and overlays |
+
+---
+
+## Project structure
+
 ```
+src/                  React UI
+  components/
+    editors/          Form, Structure, Raw, Diff editor panels
+    file/             File open, save, and status controls
+    forms/            Schema-driven form renderers
+    layout/           App shell, toolbar, settings, shortcuts overlay
+  lib/
+    parse/            JSON/JSONC/YAML/TOML detection and parsing
+    schema/           JSON Schema inference
+    validation/       AJV-based validation
+    diff/             Diff computation
+    state/            Zustand store
+    preferences/      Settings normalization and persistence
+    theme/            Light/dark theme resolution
+  types/              Shared TypeScript types
+
+src-tauri/            Rust backend
+  src/
+    commands.rs       Tauri commands: open, save, backup, restore, validate
+    main.rs           App entry point
+```
+
+---
 
 ## Development
 
-Prerequisites:
+### Prerequisites
 
-- Node.js 20+
-- Rust toolchain
-- Tauri system dependencies for your platform
+- **Node.js** 20+
+- **Rust** toolchain — install via [rustup](https://rustup.rs)
+- **Tauri system dependencies** — see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform (macOS needs Xcode Command Line Tools)
 
-Commands:
+### Setup
 
 ```bash
+git clone https://github.com/sambitcreate/Open-Edit-Code.git
+cd Open-Edit-Code
 npm install
-npm run dev
-npm run build
+```
+
+### Run in development
+
+```bash
 npm run tauri -- dev
 ```
 
-## Notes
+This starts the Vite dev server and launches the Tauri window with hot reload.
 
-- YAML and TOML detection already exists, but full parsing support is still marked as coming soon in the frontend parser.
-- The Tauri backend currently exposes `open_file`, `save_file`, `list_backups`, `restore_backup`, and `validate_json`.
+### Run tests
+
+```bash
+npm test           # web + Rust tests
+npm run test:web   # Vitest only
+npm run test:rust  # cargo test only
+```
+
+### Build a release `.app` + `.dmg`
+
+```bash
+# Generate icons from a 1024x1024 source image
+npx tauri icon path/to/icon.png
+
+# Build
+npm run tauri build
+```
+
+Output lands in `src-tauri/target/release/bundle/`.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
