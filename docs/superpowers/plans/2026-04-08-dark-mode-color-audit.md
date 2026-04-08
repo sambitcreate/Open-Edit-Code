@@ -1261,6 +1261,12 @@ Insert this block immediately after the `@theme { ... }` block (right before the
     --color-input: #221f1b;
     --color-overlay: rgba(0, 0, 0, 0.55);
 
+    /* Elevation shadow scale — heavier in dark mode for parity */
+    --shadow-elevation-1: 0 3px 6px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-elevation-2: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --shadow-elevation-3: 0 14px 36px rgba(0, 0, 0, 0.55);
+    --shadow-inset-1: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+
     /* Legacy aliases */
     --color-card: #221f1b;
     --color-card-foreground: #f2ece1;
