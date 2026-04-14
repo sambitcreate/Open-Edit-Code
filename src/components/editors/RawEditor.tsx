@@ -57,6 +57,8 @@ export function RawEditor() {
         ? "ini"
         : currentFile?.format ?? "json";
 
+  const parseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleChange = useCallback(
     (value: string | undefined) => {
       if (value === undefined || !currentFile) return;
@@ -64,24 +66,30 @@ export function RawEditor() {
       setRawContent(value);
       setDirty(value !== originalContent);
 
-      const parsed = parseContent(value, currentFile.format);
-      if (parsed.error) {
-        setConfigData(null);
-        setConfigRootKind(null);
-        setValidationErrors([
-          createValidationError(
-            "/",
-            parsed.error,
-            supportsStructuredEditing(currentFile.format) ? "error" : "warning",
-            value
-          ),
-        ]);
-        return;
+      if (parseTimerRef.current) {
+        clearTimeout(parseTimerRef.current);
       }
 
-      setConfigData(parsed.data);
-      setConfigRootKind(parsed.rootKind);
-      setValidationErrors([]);
+      parseTimerRef.current = setTimeout(() => {
+        const parsed = parseContent(value!, currentFile!.format);
+        if (parsed.error) {
+          setConfigData(null);
+          setConfigRootKind(null);
+          setValidationErrors([
+            createValidationError(
+              "/",
+              parsed.error,
+              supportsStructuredEditing(currentFile!.format) ? "error" : "warning",
+              value!
+            ),
+          ]);
+          return;
+        }
+
+        setConfigData(parsed.data);
+        setConfigRootKind(parsed.rootKind);
+        setValidationErrors([]);
+      }, 150);
     },
     [
       currentFile,
@@ -94,6 +102,16 @@ export function RawEditor() {
     ]
   );
 
+  useEffect(() => {
+    return () => {
+      if (parseTimerRef.current) {
+        clearTimeout(parseTimerRef.current);
+      }
+    };
+  }, []);
+
+  const markerVersionRef = useRef(0);
+
   const applyMarkers = useCallback(() => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
@@ -103,12 +121,18 @@ export function RawEditor() {
       return;
     }
 
+    const version = ++markerVersionRef.current;
+
     const markers = validationErrors.map((error) => ({
       ...getValidationMarkerRange(rawContent, error),
       message: error.message,
       severity:
         error.severity === "error" ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
     }));
+
+    if (markerVersionRef.current !== version) {
+      return;
+    }
 
     monaco.editor.setModelMarkers(model, "config-studio-validation", markers);
   }, [rawContent, validationErrors]);

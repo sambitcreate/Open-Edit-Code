@@ -40,6 +40,23 @@ pub struct BackupRetentionSettings {
     pub value: u32,
 }
 
+fn validate_file_path(path: &str) -> Result<PathBuf, String> {
+    let canonical = std::path::Path::new(path)
+        .canonicalize()
+        .map_err(|e| format!("Invalid path: {}", e))?;
+
+    let canonical_str = canonical.to_string_lossy();
+
+    if canonical_str.contains("/dev/")
+        || canonical_str.contains("/proc/")
+        || canonical_str.contains("/sys/")
+    {
+        return Err("Access to system paths is not allowed".to_string());
+    }
+
+    Ok(canonical)
+}
+
 fn detect_format(path: &str) -> String {
     let lower = path.to_lowercase();
     if lower.ends_with(".jsonc") {
@@ -117,10 +134,7 @@ fn backup_entries(backup_dir: &Path) -> Result<Vec<(PathBuf, String)>, String> {
     Ok(entries)
 }
 
-fn prune_backups(
-    backup_dir: &Path,
-    retention: &BackupRetentionSettings,
-) -> Result<(), String> {
+fn prune_backups(backup_dir: &Path, retention: &BackupRetentionSettings) -> Result<(), String> {
     let backups = backup_entries(backup_dir)?;
 
     match retention.mode {
@@ -220,7 +234,9 @@ fn list_backups_in_dir(backup_dir: &Path, original_path: &str) -> Result<Vec<Bac
 
 #[command]
 pub fn open_file(path: String) -> Result<FileInfo, String> {
-    let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    let canonical = validate_file_path(&path)?;
+    let content =
+        fs::read_to_string(&canonical).map_err(|e| format!("Failed to read file: {}", e))?;
     let format = detect_format(&path);
     Ok(FileInfo {
         path,
@@ -236,6 +252,7 @@ pub fn save_file(
     content: String,
     backup_retention: Option<BackupRetentionSettings>,
 ) -> Result<SaveResult, String> {
+    let _ = validate_file_path(&path)?;
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -257,17 +274,17 @@ pub fn list_backups(app: tauri::AppHandle, target_path: String) -> Result<Vec<Ba
 
 #[command]
 pub fn restore_backup(backup_path: String, target_path: String) -> Result<SaveResult, String> {
-    let backup = Path::new(&backup_path);
-    let target = Path::new(&target_path);
+    let backup = validate_file_path(&backup_path)?;
+    let target = validate_file_path(&target_path)?;
 
     if !backup.exists() {
         return Err("Backup file does not exist".to_string());
     }
 
     let content =
-        fs::read_to_string(backup).map_err(|e| format!("Failed to read backup: {}", e))?;
+        fs::read_to_string(&backup).map_err(|e| format!("Failed to read backup: {}", e))?;
 
-    fs::write(target, &content).map_err(|e| format!("Failed to restore backup: {}", e))?;
+    fs::write(&target, &content).map_err(|e| format!("Failed to restore backup: {}", e))?;
 
     Ok(SaveResult {
         success: true,
@@ -278,7 +295,8 @@ pub fn restore_backup(backup_path: String, target_path: String) -> Result<SaveRe
 
 #[command]
 pub fn delete_backup(backup_path: String) -> Result<bool, String> {
-    match fs::remove_file(&backup_path) {
+    let canonical = validate_file_path(&backup_path)?;
+    match fs::remove_file(&canonical) {
         Ok(_) => Ok(true),
         Err(error) if error.kind() == ErrorKind::NotFound => {
             Err("Backup file does not exist".to_string())
@@ -372,13 +390,14 @@ mod tests {
             .expect("write new backup");
         fs::write(backup_dir.join("ignore.txt"), "three").expect("write ignored file");
 
-        let backups =
-            list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list backups");
+        let backups = list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list backups");
 
         assert_eq!(backups.len(), 2);
         assert_eq!(backups[0].timestamp, "20240201_010101");
         assert_eq!(backups[1].timestamp, "20240101_010101");
-        assert!(backups.iter().all(|backup| backup.original_path == "/tmp/settings.json"));
+        assert!(backups
+            .iter()
+            .all(|backup| backup.original_path == "/tmp/settings.json"));
 
         fs::remove_dir_all(&backup_dir).expect("remove backup dir");
     }
@@ -400,10 +419,20 @@ mod tests {
         let first_path = first_file.to_string_lossy().to_string();
         let second_path = second_file.to_string_lossy().to_string();
 
-        save_file_with_backup(&app_data_dir, &first_path, "{\"name\":\"first-after\"}", None)
-            .expect("save first file");
-        save_file_with_backup(&app_data_dir, &second_path, "{\"name\":\"second-after\"}", None)
-            .expect("save second file");
+        save_file_with_backup(
+            &app_data_dir,
+            &first_path,
+            "{\"name\":\"first-after\"}",
+            None,
+        )
+        .expect("save first file");
+        save_file_with_backup(
+            &app_data_dir,
+            &second_path,
+            "{\"name\":\"second-after\"}",
+            None,
+        )
+        .expect("save second file");
 
         let first_backups = list_backups_in_dir(
             &get_file_backup_dir(&app_data_dir, &first_path),
@@ -436,8 +465,11 @@ mod tests {
             .expect("write oldest backup");
         fs::write(backup_dir.join("settings.json_20240201_010101.bak"), "two")
             .expect("write middle backup");
-        fs::write(backup_dir.join("settings.json_20240301_010101.bak"), "three")
-            .expect("write newest backup");
+        fs::write(
+            backup_dir.join("settings.json_20240301_010101.bak"),
+            "three",
+        )
+        .expect("write newest backup");
 
         prune_backups(
             &backup_dir,
@@ -475,7 +507,10 @@ mod tests {
         )
         .expect("write expired backup");
         fs::write(
-            backup_dir.join(format!("settings.json_{}.bak", fresh.format("%Y%m%d_%H%M%S"))),
+            backup_dir.join(format!(
+                "settings.json_{}.bak",
+                fresh.format("%Y%m%d_%H%M%S")
+            )),
             "new",
         )
         .expect("write fresh backup");
@@ -491,7 +526,10 @@ mod tests {
 
         let backups = list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list backups");
         assert_eq!(backups.len(), 1);
-        assert_eq!(backups[0].timestamp, fresh.format("%Y%m%d_%H%M%S").to_string());
+        assert_eq!(
+            backups[0].timestamp,
+            fresh.format("%Y%m%d_%H%M%S").to_string()
+        );
 
         fs::remove_dir_all(&backup_dir).expect("remove backup dir");
     }

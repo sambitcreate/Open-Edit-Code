@@ -173,7 +173,7 @@ export function parseContent(content: string, format: FileFormat): ParseResult {
     case "toml":
       return {
         data: null,
-        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is safest for now, and richer support is planned.`,
+        error: null,
         rootKind: null,
       };
     default:

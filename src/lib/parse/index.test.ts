@@ -109,16 +109,16 @@ describe("parse helpers", () => {
     ).toBe(true);
   });
 
-  it("returns raw-mode guidance for unsupported structured formats", () => {
+  it("returns null data without error for unsupported structured formats", () => {
     expect(parseContent("name: value", "yaml")).toEqual({
       data: null,
-      error: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
+      error: null,
       rootKind: null,
     });
 
     expect(parseContent("key = 'value'", "toml")).toEqual({
       data: null,
-      error: "TOML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
+      error: null,
       rootKind: null,
     });
   });

@@ -238,13 +238,7 @@ describe("SaveControls", () => {
       rawContent: "name: before",
       configData: null,
       dirty: false,
-      validationErrors: [
-        {
-          path: "/",
-          message: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
-          severity: "warning",
-        },
-      ],
+      validationErrors: [],
     });
   });
 
