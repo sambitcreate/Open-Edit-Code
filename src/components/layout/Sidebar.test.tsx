@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
@@ -46,5 +47,17 @@ describe("Sidebar", () => {
     expect(screen.getByRole("button", { name: "mcp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "plugin" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "General" })).not.toBeInTheDocument();
+  });
+
+  it("returns null when no currentFile", () => {
+    useAppStore.setState({ currentFile: null });
+    const { container } = render(<Sidebar sections={sections} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("sets active section on button click", async () => {
+    render(<Sidebar sections={sections} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "plugin" }));
+    expect(useAppStore.getState().activeSection).toBe("plugin");
   });
 });
