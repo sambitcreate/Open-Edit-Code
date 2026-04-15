@@ -581,4 +581,164 @@ mod tests {
         assert!(validate_json("{\"name\":\"OpenCode\"}".to_string()).expect("valid json"));
         assert!(validate_json("{\"name\":".to_string()).is_err());
     }
+
+    #[test]
+    fn detect_format_handles_yaml_extension() {
+        assert_eq!(detect_format("/tmp/file.yaml"), "yaml");
+    }
+
+    #[test]
+    fn detect_format_is_case_insensitive() {
+        assert_eq!(detect_format("/tmp/file.JSON"), "json");
+        assert_eq!(detect_format("/tmp/file.YML"), "yaml");
+        assert_eq!(detect_format("/tmp/file.TOML"), "toml");
+    }
+
+    #[test]
+    fn detect_format_defaults_to_json_for_unknown_extensions() {
+        assert_eq!(detect_format("/tmp/file.conf"), "json");
+        assert_eq!(detect_format("/tmp/file"), "json");
+    }
+
+    #[test]
+    fn extract_backup_timestamp_parses_valid_name() {
+        let result = extract_backup_timestamp("settings.json_20240101_010101.bak");
+        assert_eq!(result, Some("20240101_010101".to_string()));
+    }
+
+    #[test]
+    fn extract_backup_timestamp_rejects_non_bak() {
+        assert_eq!(
+            extract_backup_timestamp("settings.json_20240101_010101.txt"),
+            None
+        );
+    }
+
+    #[test]
+    fn extract_backup_timestamp_rejects_malformed_date() {
+        assert_eq!(
+            extract_backup_timestamp("settings.json_2024_0101.bak"),
+            None
+        );
+    }
+
+    #[test]
+    fn parse_backup_timestamp_round_trips() {
+        let ts = "20240615_143022";
+        let parsed = parse_backup_timestamp(ts);
+        assert!(parsed.is_some());
+        assert_eq!(parsed.unwrap().format("%Y%m%d_%H%M%S").to_string(), ts);
+    }
+
+    #[test]
+    fn parse_backup_timestamp_rejects_invalid() {
+        assert!(parse_backup_timestamp("not-a-timestamp").is_none());
+    }
+
+    #[test]
+    fn encode_path_for_backup_dir_encodes_simple_path() {
+        let encoded = encode_path_for_backup_dir("/tmp/config.json");
+        assert!(!encoded.is_empty());
+        assert!(!encoded.contains('/'));
+    }
+
+    #[test]
+    fn backup_entries_returns_empty_for_nonexistent_dir() {
+        let dir = temp_path("nonexistent-backup-entries");
+        let result = backup_entries(&dir).expect("backup entries");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn validate_json_accepts_empty_object() {
+        assert!(validate_json("{}".to_string()).expect("empty object"));
+    }
+
+    #[test]
+    fn validate_json_accepts_array() {
+        assert!(validate_json("[1, 2, 3]".to_string()).expect("array"));
+    }
+
+    #[test]
+    fn validate_json_rejects_empty_string() {
+        assert!(validate_json("".to_string()).is_err());
+    }
+
+    #[test]
+    fn validate_json_accepts_null() {
+        assert!(validate_json("null".to_string()).expect("null"));
+    }
+
+    #[test]
+    fn prune_backups_count_zero_removes_all() {
+        let backup_dir = temp_path("prune-zero");
+        fs::create_dir_all(&backup_dir).expect("create dir");
+        fs::write(backup_dir.join("f_20240101_010101.bak"), "a").expect("write");
+        fs::write(backup_dir.join("f_20240201_010101.bak"), "b").expect("write");
+
+        prune_backups(
+            &backup_dir,
+            &BackupRetentionSettings {
+                mode: BackupRetentionMode::Count,
+                value: 0,
+            },
+        )
+        .expect("prune");
+
+        let remaining = backup_entries(&backup_dir).expect("entries");
+        assert!(remaining.is_empty());
+
+        fs::remove_dir_all(&backup_dir).expect("cleanup");
+    }
+
+    #[test]
+    fn list_backups_in_dir_returns_empty_for_empty_dir() {
+        let dir = temp_path("empty-backup-dir");
+        fs::create_dir_all(&dir).expect("create dir");
+
+        let result = list_backups_in_dir(&dir, "/tmp/f.json").expect("list");
+        assert!(result.is_empty());
+
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn delete_backup_returns_error_for_missing_file() {
+        let result = delete_backup("/tmp/nonexistent_backup_file_12345.bak".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn save_file_with_backup_returns_error_for_nonexistent_file() {
+        let app_data_dir = temp_path("save-error-app");
+        fs::create_dir_all(&app_data_dir).expect("create dir");
+
+        let result = save_file_with_backup(
+            &app_data_dir,
+            "/tmp/nonexistent_config_file_xyz.json",
+            "content",
+            None,
+        );
+        assert!(result.is_err());
+
+        fs::remove_dir_all(&app_data_dir).expect("cleanup");
+    }
+
+    #[test]
+    fn restore_backup_returns_error_for_missing_backup() {
+        let dir = temp_path("restore-error");
+        fs::create_dir_all(&dir).expect("create dir");
+        let target = dir.join("target.json");
+        fs::write(&target, "current").expect("write target");
+
+        let result = restore_backup(
+            dir.join("nonexistent_20240101_010101.bak")
+                .to_string_lossy()
+                .to_string(),
+            target.to_string_lossy().to_string(),
+        );
+        assert!(result.is_err());
+
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
 }
