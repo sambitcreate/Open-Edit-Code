@@ -168,4 +168,27 @@ describe("FileOpener", () => {
       expect(useAppStore.getState().editorMode).toBe("diff");
     });
   });
+
+  it("shows the current file name in a chip when a file is open", () => {
+    resetStore({
+      dirty: false,
+    });
+
+    render(<FileOpener />);
+    expect(screen.getByText("current.json")).toBeInTheDocument();
+  });
+
+  it("shows a dirty indicator when the file has unsaved changes", () => {
+    resetStore({ dirty: true });
+
+    render(<FileOpener />);
+    expect(screen.getByTitle("Unsaved changes")).toBeInTheDocument();
+  });
+
+  it("disables the recent files button when there are no recent files", () => {
+    resetStore({ recentFiles: [] });
+
+    render(<FileOpener />);
+    expect(screen.getByRole("button", { name: /Recent files/i })).toBeDisabled();
+  });
 });
