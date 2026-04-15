@@ -96,4 +96,22 @@ describe("buildSchemaFromData", () => {
       ],
     });
   });
+
+  it("returns an empty array when data is null", () => {
+    expect(getDataSections(null)).toEqual([]);
+  });
+
+  it("builds primitive schemas for null, boolean, and number values", () => {
+    expect(buildSchemaFromData(null)).toEqual({ type: "null" });
+    expect(buildSchemaFromData(true)).toEqual({ type: "boolean" });
+    expect(buildSchemaFromData(42)).toEqual({ type: "integer" });
+    expect(buildSchemaFromData(3.14)).toEqual({ type: "number" });
+  });
+
+  it("shows all sections when no active section is specified", () => {
+    const result = buildUiSchemaFromData({ a: 1, b: 2 });
+    expect(result.elements).toHaveLength(2);
+    expect(result.elements[0].label).toBe("a");
+    expect(result.elements[1].label).toBe("b");
+  });
 });
