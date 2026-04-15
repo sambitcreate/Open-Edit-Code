@@ -168,4 +168,21 @@ describe("parse helpers", () => {
     expect(getFileName("C:\\temp\\config.json")).toBe("config.json");
     expect(getFileName("config.json")).toBe("config.json");
   });
+
+  it("returns an error for empty string input", () => {
+    expect(parseJson("")).toMatchObject({
+      data: null,
+      rootKind: null,
+    });
+    expect(parseJson("").error).toBeTruthy();
+  });
+
+  it("serializes an empty object", () => {
+    expect(serializeJson({})).toEqual("{}");
+  });
+
+  it("detects format as json for unknown extensions", () => {
+    expect(detectFormat("/tmp/config.txt")).toBe("json");
+    expect(detectFormat("/tmp/config")).toBe("json");
+  });
 });
